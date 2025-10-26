@@ -1,0 +1,12 @@
+com/urbancollection/ecommerce/api/web/ProductoController.class
+com/urbancollection/ecommerce/api/web/dto/PedidoCreateRequest.class
+com/urbancollection/ecommerce/api/web/ApiExceptionHandler.class
+com/urbancollection/ecommerce/api/web/dto/ConfirmarPagoRequest.class
+com/urbancollection/ecommerce/api/web/dto/ProductoRequest.class
+com/urbancollection/ecommerce/api/web/dto/ItemPedidoRequest.class
+com/urbancollection/ecommerce/api/web/PedidoController.class
+com/urbancollection/ecommerce/api/EcommerceApiApplication.class
+com/urbancollection/ecommerce/api/config/AppConfig.class
+com/urbancollection/ecommerce/api/web/dto/DespachoRequest.class
+com/urbancollection/ecommerce/api/web/dto/ProductoCreateRequest.class
+com/urbancollection/ecommerce/api/web/PingController.class

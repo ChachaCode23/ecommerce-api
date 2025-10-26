@@ -1,194 +1,294 @@
 package com.urbancollection.ecommerce.api.web;
 
-import com.urbancollection.ecommerce.api.web.dto.ConfirmarPagoRequest;
-import com.urbancollection.ecommerce.api.web.dto.DespachoRequest;
-import com.urbancollection.ecommerce.api.web.dto.PedidoCreateRequest;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import com.urbancollection.ecommerce.application.service.PedidoService;
 import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
 import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
 import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
-import com.urbancollection.ecommerce.domain.repository.PedidoRepository;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import com.urbancollection.ecommerce.domain.enums.MetodoDePago;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-// Controlador REST para el flujo de pedidos.
-
+@RestController
 @RequestMapping("/api/pedidos")
-@Tag(name = "Pedidos", description = "Flujo de pedidos: crear, pagar, despachar y entregar")
 public class PedidoController {
 
-    private final PedidoService pedidoService;          // Servicio con la lógica de negocio de pedidos.
-    private final PedidoRepository pedidoRepository;    // Repositorio para lecturas rápidas.
+    private static final Logger logger = LoggerFactory.getLogger(PedidoController.class);
 
-    public PedidoController(PedidoService pedidoService, PedidoRepository pedidoRepository) {
+    private final PedidoService pedidoService;
+
+    public PedidoController(PedidoService pedidoService) {
         this.pedidoService = pedidoService;
-        this.pedidoRepository = pedidoRepository;
     }
 
-    
-     //POST /api/pedidos
-     // Crea un nuevo pedido a partir de un request JSON.
-   
-    @Operation(summary = "Crear pedido")
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> crear(@Valid @RequestBody PedidoCreateRequest req) {
-        // Mapeo manual de los items del request a la entidad ItemPedido (solo seteamos id del producto y cantidad).
-        List<ItemPedido> items = req.getItems().stream().map(i -> {
-            ItemPedido it = new ItemPedido();
-            Producto p = new Producto();
-            p.setId(i.getProductoId());   // Solo necesitamos el id; el servicio buscará el producto persistido.
-            it.setProducto(p);
-            it.setCantidad(i.getCantidad());
-            return it;
-        }).collect(Collectors.toList());
+    // =========================
+    // GET /api/pedidos
+    // =========================
+    @GetMapping
+    public ResponseEntity<List<PedidoResumenDto>> listar() {
 
-        // Ejecución del caso de uso en la capa de aplicación.
-        OperationResult r = pedidoService.crearPedido(
-                req.getUsuarioId(),
-                req.getDireccionId(),
-                items,
-                req.getCuponId()
-        );
+        List<Pedido> pedidos = pedidoService.listarTodos();
 
-        // Construir body estandar segun exito/fracaso.
-        Map<String, Object> body = new LinkedHashMap<>();
-        if (r.isSuccess()) {
-            body.put("message", r.getMessage());
-            return ResponseEntity.ok(body);
-        } else {
-            body.put("error", r.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        List<PedidoResumenDto> dtoList = new ArrayList<>();
+        for (Pedido p : pedidos) {
+            dtoList.add(mapToResumen(p));
+        }
+
+        return ResponseEntity.ok(dtoList);
+    }
+
+    // =========================
+    // GET /api/pedidos/{id}
+    // =========================
+    @GetMapping("/{id}")
+    public ResponseEntity<?> obtener(@PathVariable Long id) {
+        Pedido p = pedidoService.obtenerPorId(id);
+        if (p == null) {
+            return notFound("Pedido no encontrado");
+        }
+        return ResponseEntity.ok(mapToResumen(p));
+    }
+
+    // =========================
+    // POST /api/pedidos
+    // body:
+    // {
+    //   "usuarioId": 1,
+    //   "direccionId": 1,
+    //   "items": [
+    //     { "productoId": 1, "cantidad": 2 }
+    //   ],
+    //   "cuponId": 1
+    // }
+    // =========================
+    @PostMapping
+    public ResponseEntity<?> crear(@RequestBody CrearPedidoRequest body) {
+        try {
+            if (body == null) {
+                return badRequest("Body requerido");
+            }
+
+            // mapear request.items -> List<ItemPedido> de dominio
+            List<ItemPedido> items = new ArrayList<>();
+            if (body.items != null) {
+                for (CrearPedidoItemRequest it : body.items) {
+                    ItemPedido ip = new ItemPedido();
+
+                    // producto con sólo el id
+                    Producto prod = new Producto();
+                    prod.setId(it.productoId);
+
+                    ip.setProducto(prod);
+                    ip.setCantidad(it.cantidad);
+
+                    items.add(ip);
+                }
+            }
+
+            OperationResult r = pedidoService.crearPedido(
+                    body.usuarioId,
+                    body.direccionId,
+                    items,
+                    body.cuponId
+            );
+
+            if (!r.isSuccess()) {
+                return badRequest(r.getMessage(), null);
+            }
+
+            return ResponseEntity.ok(message("Pedido creado correctamente"));
+        } catch (Exception e) {
+            logger.error("Error creando pedido", e);
+            return serverError("No se pudo crear el pedido");
         }
     }
 
-    /**
-     * POST /api/pedidos/{id}/pago
-     * Confirma el pago de un pedido (estado pasa a PAGADO si todo está bien).
-     *
-     * Entrada:
-     * - Path variable: id del pedido.
-     * - Body: ConfirmarPagoRequest con método de pago y monto.
-     *
-     * Salida:
-     * - 200 OK con "message" si se confirmo.
-     * - 400 Bad Request con "error" si falló, monto incorrecto, estado inválido, etc.
-     */
-    @Operation(summary = "Confirmar pago de un pedido")
-    @PostMapping(path = "/{id}/pago", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> confirmarPago(@PathVariable("id") Long id,
-                                           @Valid @RequestBody ConfirmarPagoRequest req) {
-        OperationResult r = pedidoService.confirmarPago(id, req.getMetodo(), req.getMonto());
-        Map<String, Object> body = new LinkedHashMap<>();
-        if (r.isSuccess()) {
-            body.put("message", r.getMessage());
-            return ResponseEntity.ok(body);
-        } else {
-            body.put("error", r.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    // =========================
+    // POST /api/pedidos/{id}/pago
+    // body:
+    // {
+    //   "metodo": "TARJETA",
+    //   "monto": 107.98
+    // }
+    // =========================
+    @PostMapping("/{id}/pago")
+    public ResponseEntity<?> confirmarPago(
+            @PathVariable Long id,
+            @RequestBody ConfirmarPagoRequest body
+    ) {
+        try {
+            if (body == null) {
+                return badRequest("Body requerido");
+            }
+            if (body.metodo == null) {
+                return badRequest("Metodo de pago requerido");
+            }
+            if (body.monto == null) {
+                return badRequest("Monto requerido");
+            }
+
+            OperationResult r = pedidoService.confirmarPago(
+                    id,
+                    body.metodo,
+                    body.monto
+            );
+
+            if (!r.isSuccess()) {
+                return badRequest(r.getMessage(), null);
+            }
+
+            return ResponseEntity.ok(message("Pago confirmado y stock actualizado"));
+        } catch (Exception e) {
+            logger.error("Error confirmando pago", e);
+            return serverError("No se pudo confirmar el pago");
         }
     }
 
-    /**
-     * POST /api/pedidos/{id}/despacho
-     * Registra el envío (tracking) y cambia el estado del pedido a ENVIADO.
-     *
-     * Entrada:
-     * - Path variable: id del pedido.
-     * - Body: DespachoRequest con el código de tracking.
-     */
-    @Operation(summary = "Despachar pedido (crea envío con tracking)")
-    @PostMapping(path = "/{id}/despacho", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> despachar(@PathVariable("id") Long id,
-                                       @Valid @RequestBody DespachoRequest req) {
-        OperationResult r = pedidoService.despacharPedido(id, req.getTracking());
-        Map<String, Object> body = new LinkedHashMap<>();
-        if (r.isSuccess()) {
-            body.put("message", r.getMessage());
-            return ResponseEntity.ok(body);
-        } else {
-            body.put("error", r.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    // =========================
+    // POST /api/pedidos/{id}/despacho
+    // body:
+    // {
+    //   "tracking": "TRACK-XYZ-123"
+    // }
+    // =========================
+    @PostMapping("/{id}/despacho")
+    public ResponseEntity<?> despachar(
+            @PathVariable Long id,
+            @RequestBody DespachoRequest body
+    ) {
+        try {
+            if (body == null || body.tracking == null || body.tracking.isBlank()) {
+                return badRequest("Tracking requerido");
+            }
+
+            OperationResult r = pedidoService.despacharPedido(id, body.tracking);
+
+            if (!r.isSuccess()) {
+                return badRequest(r.getMessage(), null);
+            }
+
+            return ResponseEntity.ok(message("Pedido despachado"));
+        } catch (Exception e) {
+            logger.error("Error despachando pedido", e);
+            return serverError("No se pudo despachar el pedido");
         }
     }
 
-    /**
-     * POST /api/pedidos/{id}/entrega
-     * Marca el pedido como ENTREGADO (si actualmente está ENVIADO).
-     */
-    @Operation(summary = "Marcar pedido como ENTREGADO")
-    @PostMapping(path = "/{id}/entrega", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> entregar(@PathVariable("id") Long id) {
-        OperationResult r = pedidoService.marcarEntregado(id);
-        Map<String, Object> body = new LinkedHashMap<>();
-        if (r.isSuccess()) {
-            body.put("message", r.getMessage());
-            return ResponseEntity.ok(body);
-        } else {
-            body.put("error", r.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    // =========================
+    // POST /api/pedidos/{id}/entrega
+    // body vacío
+    // =========================
+    @PostMapping("/{id}/entrega")
+    public ResponseEntity<?> marcarEntregado(@PathVariable Long id) {
+        try {
+            OperationResult r = pedidoService.marcarEntregado(id);
+
+            if (!r.isSuccess()) {
+                return badRequest(r.getMessage(), null);
+            }
+
+            return ResponseEntity.ok(message("Pedido marcado como COMPLETADO"));
+        } catch (Exception e) {
+            logger.error("Error marcando entrega", e);
+            return serverError("No se pudo marcar como COMPLETADO");
         }
     }
 
-    /**
-     * GET /api/pedidos/{id}
-     * Vista rápida de un pedido (sin anidar todo el grafo de objetos).
-     *
-     * Respuesta:
-     * - 200 OK con un JSON simple (id, usuarioId, direccionId, estado, total).
-     * - 404 Not Found si no existe el pedido.
-     */
-    @Operation(summary = "Obtener un pedido por id (vista rápida)")
-    @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> ver(@PathVariable("id") Long id) {
-        Pedido p = pedidoRepository.findById(id);
-        if (p == null) return ResponseEntity.notFound().build();
+    // =========================
+    // DTOs
+    // =========================
 
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("id", p.getId());
-        out.put("usuarioId", p.getUsuario() != null ? p.getUsuario().getId() : null);
-        out.put("direccionId", p.getDireccionEntrega() != null ? p.getDireccionEntrega().getId() : null);
-        out.put("estado", p.getEstado() != null ? p.getEstado().name() : null);
-        out.put("total", p.getTotal());
-
-        return ResponseEntity.ok(out);
+    public static class PedidoResumenDto {
+        public Long id;
+        public Long usuarioId;
+        public Long direccionId;
+        public String estado;
+        public BigDecimal total;
     }
 
-    /**
-     * GET /api/pedidos
-     * Lista pedidos en formato resumido. Permite limitar la cantidad con ?limit=N.
-     *
-     * Detalles:
-     * - Carga todos desde el repositorio (findAll).
-     * - Si llega "limit" y es > 0 y menor al tamaño, recorta la lista.
-     * - Mapea cada pedido a un mapa {id, estado, total} para respuesta ligera.
-     */
-    @Operation(summary = "Listar pedidos (vista rapida)")
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> listar(@ParameterObject @RequestParam(required = false) Integer limit) {
-        List<Pedido> all = pedidoRepository.findAll();
-        if (limit != null && limit > 0 && limit < all.size()) {
-            all = all.subList(0, limit);
-        }
-        List<Map<String, Object>> out = all.stream().map(p -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", p.getId());
-            m.put("estado", p.getEstado() != null ? p.getEstado().name() : null);
-            m.put("total", p.getTotal());
-            return m;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(out);
+    public static class CrearPedidoRequest {
+        public Long usuarioId;
+        public Long direccionId;
+        public List<CrearPedidoItemRequest> items;
+        public Long cuponId; // opcional
+    }
+
+    public static class CrearPedidoItemRequest {
+        public Long productoId;
+        public int cantidad;
+    }
+
+    public static class ConfirmarPagoRequest {
+        public MetodoDePago metodo;
+        public BigDecimal monto;
+    }
+
+    public static class DespachoRequest {
+        public String tracking;
+    }
+
+    public static class MessageResponse {
+        public String message;
+    }
+
+    public static class ErrorResponse {
+        public String error;
+        public Object fields;
+    }
+
+    // =========================
+    // helpers privados
+    // =========================
+
+    private PedidoResumenDto mapToResumen(Pedido p) {
+        PedidoResumenDto dto = new PedidoResumenDto();
+        dto.id = p.getId();
+        dto.estado = (p.getEstado() != null) ? p.getEstado().name() : null;
+        dto.total = p.getTotal();
+
+        dto.usuarioId = (p.getUsuario() != null) ? p.getUsuario().getId() : null;
+        dto.direccionId = (p.getDireccionEntrega() != null) ? p.getDireccionEntrega().getId() : null;
+
+        return dto;
+    }
+
+    private ResponseEntity<?> badRequest(String msg) {
+        return badRequest(msg, null);
+    }
+
+    private ResponseEntity<?> badRequest(String msg, Object fields) {
+        ErrorResponse err = new ErrorResponse();
+        err.error = (msg != null && !msg.isBlank()) ? msg : "Datos inválidos";
+        err.fields = fields;
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+    }
+
+    private ResponseEntity<?> notFound(String msg) {
+        ErrorResponse err = new ErrorResponse();
+        err.error = (msg != null && !msg.isBlank()) ? msg : "No encontrado";
+        err.fields = null;
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(err);
+    }
+
+    private ResponseEntity<?> serverError(String msg) {
+        ErrorResponse err = new ErrorResponse();
+        err.error = (msg != null && !msg.isBlank()) ? msg : "Internal Server Error";
+        err.fields = null;
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+    }
+
+    private MessageResponse message(String m) {
+        MessageResponse r = new MessageResponse();
+        r.message = m;
+        return r;
     }
 }

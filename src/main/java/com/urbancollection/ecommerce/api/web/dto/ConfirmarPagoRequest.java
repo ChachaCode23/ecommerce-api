@@ -29,10 +29,17 @@ public class ConfirmarPagoRequest {
     @DecimalMin("0.01")    // el monto debe ser mayor o igual a 0.01, no 0 ni negativo.
     private BigDecimal monto;
 
+ // + campo opcional
+    private String idempotencyKey;
+
+
     // Getters y setters para que Spring mapee el JSON a este objeto
     public MetodoDePago getMetodo() { return metodo; }
     public void setMetodo(MetodoDePago metodo) { this.metodo = metodo; }
 
     public BigDecimal getMonto() { return monto; }
     public void setMonto(BigDecimal monto) { this.monto = monto; }
+    
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
 }

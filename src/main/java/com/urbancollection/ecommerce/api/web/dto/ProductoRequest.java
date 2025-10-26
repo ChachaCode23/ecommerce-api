@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 
 /**
  * ProductoRequest
- * ------------------------------------------------
  * DTO para recibir datos de producto desde la API (crear/actualizar).
  * nombre obligatorio y no vacío (@NotBlank).
  * longitud máxima 255 caracteres (@Size(max=255)).

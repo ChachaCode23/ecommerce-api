@@ -7,6 +7,16 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * CuponRepositoryJpaAdapter
+ *
+ * Este adaptador conecta el dominio con JPA.
+ * Implementa la interfaz CuponRepository (del dominio)
+ * usando internamente un CuponJpaRepository (Spring Data JPA).
+ *
+ * Idea: el resto de la app habla con CuponRepository (interfaz limpia),
+ * y aquí hacemos la parte concreta de base de datos.
+ */
 @Repository
 public class CuponRepositoryJpaAdapter implements CuponRepository {
 

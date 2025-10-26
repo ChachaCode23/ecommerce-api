@@ -8,6 +8,15 @@ import com.urbancollection.ecommerce.domain.entity.logistica.Direccion;
 import com.urbancollection.ecommerce.domain.repository.DireccionRepository;
 import com.urbancollection.ecommerce.persistence.jpa.spring.DireccionJpaRepository;
 
+/**
+ * DireccionRepositoryJpaAdapter
+ *
+ * Adaptador que implementa el repositorio del dominio (DireccionRepository)
+ * usando el repositorio de Spring Data JPA (DireccionJpaRepository).
+ *
+ * Así el resto del sistema trabaja contra la interfaz del dominio
+ * y no depende directamente de JPA.
+ */
 @Repository
 public class DireccionRepositoryJpaAdapter implements DireccionRepository {
 

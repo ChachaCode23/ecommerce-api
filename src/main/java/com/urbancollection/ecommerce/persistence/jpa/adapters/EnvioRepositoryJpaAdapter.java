@@ -7,6 +7,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * EnvioRepositoryJpaAdapter
+ *
+ * Este adaptador conecta el repositorio del dominio (EnvioRepository)
+ * con la implementación real en base de datos (EnvioJpaRepository de Spring Data JPA).
+ *
+ * Así el resto de la aplicación usa EnvioRepository (interfaz limpia),
+ * sin tener que saber que por debajo hay JPA.
+ */
 @Repository
 public class EnvioRepositoryJpaAdapter implements EnvioRepository {
 

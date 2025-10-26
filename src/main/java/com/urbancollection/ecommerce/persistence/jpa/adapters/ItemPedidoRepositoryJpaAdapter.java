@@ -8,6 +8,14 @@ import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
 import com.urbancollection.ecommerce.domain.repository.ItemPedidoRepository;
 import com.urbancollection.ecommerce.persistence.jpa.spring.ItemPedidoJpaRepository;
 
+/**
+ * ItemPedidoRepositoryJpaAdapter
+ *
+ * Adaptador entre el dominio y la base de datos para los ItemPedido.
+ * Implementa la interfaz ItemPedidoRepository usando el repositorio Spring Data JPA.
+ *
+ * Esto mantiene la capa de dominio independiente de JPA.
+ */
 @Repository
 public class ItemPedidoRepositoryJpaAdapter implements ItemPedidoRepository {
 

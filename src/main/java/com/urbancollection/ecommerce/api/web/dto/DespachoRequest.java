@@ -3,19 +3,22 @@ package com.urbancollection.ecommerce.api.web.dto;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * DTO de entrada para registrar el despacho de un pedido.
- * Se usa en: POST /api/pedidos/{id}/despacho
- * Solo necesita el numero de seguimiento (tracking).
+ * DespachoRequest
  *
- * Validaciones:
- * @NotBlank en 'tracking' para exigir que venga con texto, no null, no vacio, no solo espacios.
+ * Este DTO es el body que mando cuando quiero marcar un pedido como despachado.
+ * Se usa en el endpoint: POST /api/pedidos/{id}/despacho
+ *
+ * Solo necesito pasar el tracking del envío.
+ *
+ * Validación:
+ * - @NotBlank en tracking: obliga a mandar un texto real (no null, no vacío, no solo espacios).
  */
 public class DespachoRequest {
 
-    @NotBlank   // Debe contener algun valor no vacio ni espacios.
+    @NotBlank // Requiero que el tracking venga con un valor válido
     private String tracking;
 
-    // Getter y setter requeridos para que Spring mapee el JSON a este objeto.
+    // Getters y setters para que Spring pueda mapear el JSON del request
     public String getTracking() { return tracking; }
     public void setTracking(String tracking) { this.tracking = tracking; }
 }

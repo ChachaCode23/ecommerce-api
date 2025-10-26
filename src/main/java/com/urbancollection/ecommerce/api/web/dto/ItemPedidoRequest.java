@@ -4,22 +4,24 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Aqui le damos entrada para cada item del pedido en la creacion.
- * Se usa dentro de PedidoCreateRequest (lista de items).
+ * ItemPedidoRequest
  *
- * Aqui hacemos las siguientes Validaciones
- * productoId: obligatorio (no puede ser null).
- * cantidad: debe ser >= 1 (no se permiten cantidades 0 o negativas).
+ * Representa un ítem dentro del pedido al momento de crearlo.
+ * Esto forma parte de la lista de productos que el usuario quiere comprar.
+ *
+ * Validaciones:
+ * - productoId: obligatorio (@NotNull). Debe venir el ID del producto.
+ * - cantidad: mínimo 1 (@Min(1)). No se aceptan cantidades 0 o negativas.
  */
 public class ItemPedidoRequest {
 
-    @NotNull(message = "productoId es obligatorio") // Se debe enviar el id del producto a comprar.
+    @NotNull(message = "productoId es obligatorio")
     private Long productoId;
 
-    @Min(value = 1, message = "cantidad debe ser >= 1") // Al menos 1 unidad por item.
+    @Min(value = 1, message = "cantidad debe ser >= 1")
     private int cantidad;
 
-    // Getters y setters para que Spring mapee el JSON a este objeto.
+    // Getters y setters para que Spring haga el binding del JSON
     public Long getProductoId() { return productoId; }
     public void setProductoId(Long productoId) { this.productoId = productoId; }
 

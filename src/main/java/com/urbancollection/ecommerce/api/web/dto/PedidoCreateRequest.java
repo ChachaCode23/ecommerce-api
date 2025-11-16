@@ -1,24 +1,11 @@
 package com.urbancollection.ecommerce.api.web.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
-/**
- * PedidoCreateRequest
- *
- * Este DTO es el body que mando cuando quiero crear un pedido nuevo.
- * Se usa en el endpoint POST /api/pedidos.
- *
- * Campos:
- * - usuarioId: quién está haciendo el pedido. Obligatorio.
- * - direccionId: adónde se va a enviar. Obligatorio.
- * - cuponId: cupón aplicado (puede venir null).
- * - items: lista de productos que el usuario quiere comprar. Obligatorio.
- *
- * Validaciones básicas:
- * - @NotNull en usuarioId, direccionId e items para asegurar que vengan esos datos.
- * - Cada item de la lista tiene su propio productoId y cantidad.
- */
 public class PedidoCreateRequest {
 
     @NotNull
@@ -27,16 +14,16 @@ public class PedidoCreateRequest {
     @NotNull
     private Long direccionId;
 
-    // opcional
     private Long cuponId;
 
+    @Valid
     @NotNull
     private List<ItemPedidoRequest> items;
 
-    // GETTERS & SETTERS
     public Long getUsuarioId() {
         return usuarioId;
     }
+
     public void setUsuarioId(Long usuarioId) {
         this.usuarioId = usuarioId;
     }
@@ -44,6 +31,7 @@ public class PedidoCreateRequest {
     public Long getDireccionId() {
         return direccionId;
     }
+
     public void setDireccionId(Long direccionId) {
         this.direccionId = direccionId;
     }
@@ -51,6 +39,7 @@ public class PedidoCreateRequest {
     public Long getCuponId() {
         return cuponId;
     }
+
     public void setCuponId(Long cuponId) {
         this.cuponId = cuponId;
     }
@@ -58,34 +47,25 @@ public class PedidoCreateRequest {
     public List<ItemPedidoRequest> getItems() {
         return items;
     }
+
     public void setItems(List<ItemPedidoRequest> items) {
         this.items = items;
     }
 
-    // =============================
-    // Clase interna para cada item
-    // =============================
-
-    /**
-     * ItemPedidoRequest interno:
-     * Representa 1 producto dentro del pedido.
-     *
-     * - productoId: qué producto se está comprando.
-     * - cantidad: cuántas unidades de ese producto.
-     *
-     * Ambos marcados como @NotNull para forzar que vengan en el request.
-     */
+    // ===== items del pedido =====
     public static class ItemPedidoRequest {
 
         @NotNull
         private Long productoId;
 
         @NotNull
+        @Min(value = 1, message = "La cantidad debe ser mayor que 0")
         private Integer cantidad;
 
         public Long getProductoId() {
             return productoId;
         }
+
         public void setProductoId(Long productoId) {
             this.productoId = productoId;
         }
@@ -93,6 +73,7 @@ public class PedidoCreateRequest {
         public Integer getCantidad() {
             return cantidad;
         }
+
         public void setCantidad(Integer cantidad) {
             this.cantidad = cantidad;
         }

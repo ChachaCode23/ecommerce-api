@@ -1,79 +1,15 @@
--------------------------------------------------
--- LIMPIEZA (borra data existente para un arranque limpio)
--------------------------------------------------
+-- Insertar USUARIOS
+INSERT INTO core.usuario (usuario_id, nombre, email, hash_password, rol) VALUES (1, 'Juan Perez', 'juan@test.com', 'hash123', 'CUSTOMER');
+INSERT INTO core.usuario (usuario_id, nombre, email, hash_password, rol) VALUES (2, 'Maria Garcia', 'maria@test.com', 'hash456', 'CUSTOMER');
+INSERT INTO core.usuario (usuario_id, nombre, email, hash_password, rol) VALUES (3, 'Admin User', 'admin@test.com', 'hashAdmin', 'ADMIN');
 
--- primero tablas hijas (tienen foreign keys)
-DELETE FROM dbo.transacciones_pago;
-DELETE FROM dbo.envios;
-DELETE FROM dbo.items_pedido;
-DELETE FROM dbo.lista_deseos;
-DELETE FROM dbo.pedidos;
+-- Insertar DIRECCIONES
+INSERT INTO core.direcciones (id, calle, ciudad, provincia, codigo_postal) VALUES (1, 'Calle Principal 123', 'Santo Domingo', 'Nacional', '10001');
+INSERT INTO core.direcciones (id, calle, ciudad, provincia, codigo_postal) VALUES (2, 'Avenida Independencia 456', 'Santiago', 'Santiago', '51000');
+INSERT INTO core.direcciones (id, calle, ciudad, provincia, codigo_postal) VALUES (3, 'Calle Segunda 789', 'La Vega', 'La Vega', '41000');
 
--- luego tablas padres
-DELETE FROM dbo.productos;
-DELETE FROM dbo.cupones;
-DELETE FROM dbo.direcciones;
-DELETE FROM dbo.usuarios;
-
--------------------------------------------------
--- SEED DATA (insertamos valores conocidos con IDs fijos)
--------------------------------------------------
-
------------------------
--- USUARIOS (id = 1)
------------------------
-SET IDENTITY_INSERT dbo.usuarios ON;
-INSERT INTO dbo.usuarios (id, rol, contrasena, nombre, correo)
-VALUES (1,'CLIENTE','123','Juan Pérez','juan@example.com');
-SET IDENTITY_INSERT dbo.usuarios OFF;
-
------------------------
--- DIRECCIONES (id = 1)
------------------------
-SET IDENTITY_INSERT dbo.direcciones ON;
-INSERT INTO dbo.direcciones (id, calle, ciudad, provincia, codigo_postal)
-VALUES (1,'Av. Siempre Viva 123','Santo Domingo','DN','10101');
-SET IDENTITY_INSERT dbo.direcciones OFF;
-
------------------------
--- PRODUCTOS (id = 1 y 2)
------------------------
-SET IDENTITY_INSERT dbo.productos ON;
-INSERT INTO dbo.productos (id, nombre, descripcion, precio, stock)
-VALUES (1,'Camiseta Negra','Algodón 100%', 799.99, 50),
-       (2,'Gorra Urbana','Edición limitada', 499.50, 30);
-SET IDENTITY_INSERT dbo.productos OFF;
-
------------------------
--- CUPON (id = 1)
------------------------
-SET IDENTITY_INSERT dbo.cupones ON;
-INSERT INTO dbo.cupones (
-    id,
-    codigo,
-    tipo,
-    valor_descuento,
-    activo,
-    minimo_compra,
-    tope_descuento,
-    fecha_inicio,
-    fecha_fin
-)
-VALUES (
-    1,
-    'WELCOME10',
-    'PORCENTAJE',
-    10,
-    1,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-);
-SET IDENTITY_INSERT dbo.cupones OFF;
-
--------------------------------------------------
--- NOTA:
--- No insertamos pedidos aquí.
--- Los pedidos los vamos a crear nosotros vía Swagger (POST /api/pedidos).
--------------------------------------------------
+-- Insertar PRODUCTOS
+INSERT INTO core.producto (producto_id, nombre, descripcion, precio, stock, sku) VALUES (1, 'Camiseta Básica', 'Camiseta de algodón 100%', 500.00, 50, 'CAM-001');
+INSERT INTO core.producto (producto_id, nombre, descripcion, precio, stock, sku) VALUES (2, 'Pantalón Jean', 'Jean azul talla M', 1200.00, 30, 'PAN-002');
+INSERT INTO core.producto (producto_id, nombre, descripcion, precio, stock, sku) VALUES (3, 'Zapatos Deportivos', 'Zapatos para correr', 2500.00, 20, 'ZAP-003');
+INSERT INTO core.producto (producto_id, nombre, descripcion, precio, stock, sku) VALUES (4, 'Gorra', 'Gorra negra ajustable', 300.00, 100, 'GOR-004');

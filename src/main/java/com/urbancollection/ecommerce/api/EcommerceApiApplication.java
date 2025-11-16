@@ -2,13 +2,14 @@
 // Esto es básicamente la "puerta de entrada" de mi aplicacion Spring Boot.
 package com.urbancollection.ecommerce.api;
 
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-// En resumen: esto levanta la aplicación completa de Spring Boot.
+// esto levanta la aplicación completa de Spring Boot.
 @SpringBootApplication
 
 // @ComponentScan le digo a Spring en qué paquete tiene que buscar

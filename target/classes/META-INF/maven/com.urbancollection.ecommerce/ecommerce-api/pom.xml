@@ -37,6 +37,12 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- Thymeleaf para vistas HTML -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>com.urbancollection.ecommerce</groupId>
       <artifactId>ecommerce-domain</artifactId>
@@ -60,12 +66,22 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
 
+    <!-- Driver de producción (SQL Server) -->
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
       <scope>runtime</scope>
     </dependency>
 
+    <!-- H2 para correr ahora la app sin depender de SQL Server -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.2.224</version>
+      <!-- sin <scope> para que esté disponible en runtime -->
+    </dependency>
+
+    <!-- Starter de pruebas (JUnit 5, Mockito, etc.) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -75,14 +91,18 @@
 
   <build>
     <plugins>
-      <!-- Deja que Spring Boot gestione la versión del compiler plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <release>21</release>
-          <parameters>true</parameters> <!-- equivale a -parameters -->
+          <parameters>true</parameters>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
 
       <plugin>

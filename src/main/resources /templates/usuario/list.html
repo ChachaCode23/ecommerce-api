@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Usuarios - UrbanShop',
+          breadcrumb='Usuarios',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="card-title">Listado de Usuarios</h1>
+        <a th:href="@{/web/usuarios/create}" class="btn btn-primary">
+            <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nuevo Usuario
+        </a>
+    </div>
+
+    <div th:if="${usuarios != null and !usuarios.isEmpty()}">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="usuario : ${usuarios}">
+                    <td th:text="${usuario.id}">1</td>
+                    <td th:text="${usuario.nombre}">Juan Pérez</td>
+                    <td th:text="${usuario.email}">juan@example.com</td>
+                    <td>
+                        <span th:text="${usuario.rol}" 
+                              style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;"
+                              th:style="${usuario.rol == 'ADMIN' ? 'background: #dbeafe; color: #1e40af;' : 
+                                         usuario.rol == 'EMPLEADO' ? 'background: #fef3c7; color: #92400e;' : 
+                                         'background: #d1fae5; color: #065f46;'}">
+                            CLIENTE
+                        </span>
+                    </td>
+                    <td>
+                        <a th:href="@{/web/usuarios/edit/{id}(id=${usuario.id})}" class="btn btn-secondary" style="padding: 8px 16px; margin-right: 8px;">
+                            Editar
+                        </a>
+                        <form th:action="@{/web/usuarios/delete/{id}(id=${usuario.id})}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-danger" style="padding: 8px 16px;" 
+                                    onclick="return confirm('¿Está seguro de eliminar este usuario?');">
+                                Eliminar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:if="${usuarios == null or usuarios.isEmpty()}" style="text-align: center; padding: 60px 20px; color: #6b7280;">
+        <svg style="width: 80px; height: 80px; margin: 0 auto 20px; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <h3 style="font-size: 20px; margin-bottom: 10px; color: #374151;">No hay usuarios registrados</h3>
+        <p style="margin-bottom: 20px;">Comienza agregando tu primer usuario al sistema.</p>
+        <a th:href="@{/web/usuarios/create}" class="btn btn-primary">
+            Crear Usuario
+        </a>
+    </div>
+</div>
+</body>
+</html>

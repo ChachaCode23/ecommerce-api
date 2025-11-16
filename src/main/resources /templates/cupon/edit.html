@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Editar Cupón',
+          breadcrumb='Cupones / Editar',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes -->
+    <div th:replace="~{messages :: messages}"></div>
+
+    <!-- Botón volver -->
+    <div style="margin-bottom: 20px;">
+        <a th:href="@{/web/cupones}" class="btn btn-secondary">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Volver al Listado
+        </a>
+    </div>
+
+    <h3 class="card-title">Editar Cupón</h3>
+
+    <!-- Formulario -->
+    <form th:action="@{/web/cupones/{id}/edit(id=${cupon.id})}" method="post" th:object="${cupon}">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- ID (solo lectura) -->
+            <div class="form-group">
+                <label>ID del Cupón</label>
+                <input type="text" 
+                       th:value="${cupon.id}" 
+                       readonly
+                       style="background-color: #f3f4f6; cursor: not-allowed;">
+            </div>
+
+            <!-- Código -->
+            <div class="form-group">
+                <label for="codigo">
+                    Código del Cupón <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" 
+                       id="codigo"
+                       name="codigo" 
+                       th:value="${cupon.codigo}" 
+                       required
+                       minlength="3"
+                       maxlength="100"
+                       style="text-transform: uppercase; font-family: monospace;">
+            </div>
+
+            <!-- Estado Activo -->
+            <div class="form-group">
+                <label for="activo">Estado</label>
+                <div style="display: flex; align-items: center; padding: 10px 0;">
+                    <input type="checkbox" 
+                           id="activo"
+                           name="activo" 
+                           th:checked="${cupon.activo}"
+                           style="width: auto; margin-right: 10px;">
+                    <label for="activo" style="margin: 0; font-weight: normal;">Cupón activo</label>
+                </div>
+            </div>
+
+            <!-- Tipo de Descuento -->
+            <div class="form-group">
+                <label for="tipo">
+                    Tipo de Descuento <span style="color: #ef4444;">*</span>
+                </label>
+                <select id="tipo" name="tipo" required>
+                    <option value="PORCENTAJE" th:selected="${cupon.tipo.name() == 'PORCENTAJE'}">Porcentaje (%)</option>
+                    <option value="MONTO_FIJO" th:selected="${cupon.tipo.name() == 'MONTO_FIJO'}">Monto Fijo ($)</option>
+                </select>
+            </div>
+
+            <!-- Valor del Descuento -->
+            <div class="form-group">
+                <label for="valorDescuento">
+                    Valor del Descuento <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="number" 
+                       id="valorDescuento"
+                       name="valorDescuento" 
+                       th:value="${cupon.valorDescuento}" 
+                       required
+                       min="0.01"
+                       step="0.01">
+            </div>
+
+            <!-- Mínimo de Compra -->
+            <div class="form-group">
+                <label for="minimoCompra">Mínimo de Compra</label>
+                <input type="number" 
+                       id="minimoCompra"
+                       name="minimoCompra" 
+                       th:value="${cupon.minimoCompra}" 
+                       min="0.01"
+                       step="0.01">
+            </div>
+
+            <!-- Tope de Descuento -->
+            <div class="form-group">
+                <label for="topeDescuento">Tope de Descuento</label>
+                <input type="number" 
+                       id="topeDescuento"
+                       name="topeDescuento" 
+                       th:value="${cupon.topeDescuento}" 
+                       min="0.01"
+                       step="0.01">
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div class="form-group">
+                <label for="fechaInicio">Fecha de Inicio</label>
+                <input type="date" 
+                       id="fechaInicio"
+                       name="fechaInicio" 
+                       th:value="${cupon.fechaInicio != null ? #temporals.format(cupon.fechaInicio, 'yyyy-MM-dd') : ''}">
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div class="form-group">
+                <label for="fechaFin">Fecha de Fin</label>
+                <input type="date" 
+                       id="fechaFin"
+                       name="fechaFin" 
+                       th:value="${cupon.fechaFin != null ? #temporals.format(cupon.fechaFin, 'yyyy-MM-dd') : ''}">
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="margin-top: 30px; display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">
+                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Guardar Cambios
+            </button>
+            <a th:href="@{/web/cupones}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    <!-- Script para auto-ocultar mensajes -->
+    <script th:replace="~{messages :: auto-hide-messages}"></script>
+</div>
+</body>
+</html>

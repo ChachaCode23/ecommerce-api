@@ -70,8 +70,9 @@ public class DependenciesConfig {
     // ===================== USUARIO SERVICE =====================
 
     @Bean
-    public IUsuarioService usuarioService(UsuarioRepository usuarioRepository) {
-        return new UsuarioService(usuarioRepository);
+    public IUsuarioService usuarioService(UsuarioRepository usuarioRepository, 
+                                          DireccionRepository direccionRepository) {
+        return new UsuarioService(usuarioRepository, direccionRepository);
     }
 
     // ===================== CUPON SERVICE =====================

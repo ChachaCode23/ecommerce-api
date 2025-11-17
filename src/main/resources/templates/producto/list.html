@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Gestión de Productos',
+          breadcrumb='Productos / Listado',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes -->
+    <div th:replace="~{messages :: messages}"></div>
+
+    <!-- Botón crear -->
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Catálogo de Productos</h3>
+        <a th:href="@{/web/productos/create}" class="btn btn-primary">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nuevo Producto
+        </a>
+    </div>
+
+    <!-- Tabla de productos -->
+    <div th:if="${productos != null and !productos.isEmpty()}">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="producto : ${productos}">
+                    <td><strong th:text="'#' + ${producto.id}">#1</strong></td>
+                    <td th:text="${producto.nombre}">Producto</td>
+                    <td th:text="${producto.descripcion ?: 'Sin descripción'}">Descripción</td>
+                    <td>
+                        <strong th:text="${'$' + #numbers.formatDecimal(producto.precio, 1, 2)}">$0.00</strong>
+                    </td>
+                    <td>
+                        <span th:text="${producto.stock}" 
+                              style="padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;"
+                              th:style="${producto.stock > 10 ? 'background: #d1fae5; color: #065f46;' : 
+                                        producto.stock > 0 ? 'background: #fef3c7; color: #92400e;' : 
+                                        'background: #fee2e2; color: #991b1b;'}">
+                            0
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a th:href="@{/web/productos/{id}/edit(id=${producto.id})}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 12px; font-size: 12px;">
+                                Editar
+                            </a>
+                            <form th:action="@{/web/productos/{id}/delete(id=${producto.id})}" 
+                                  method="post" 
+                                  style="margin: 0;"
+                                  onsubmit="return confirm('¿Está seguro de eliminar este producto?');">
+                                <button type="submit" 
+                                        class="btn btn-danger" 
+                                        style="padding: 6px 12px; font-size: 12px;">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mensaje cuando no hay productos -->
+    <div th:if="${productos == null or productos.isEmpty()}" 
+         style="text-align: center; padding: 60px 20px; color: #6b7280; background: #f9fafb; border-radius: 8px;">
+        <svg style="width: 80px; height: 80px; margin: 0 auto 20px; opacity: 0.4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <h3 style="font-size: 18px; margin-bottom: 10px; color: #4b5563;">No hay productos registrados</h3>
+        <p style="margin-bottom: 20px;">Comienza agregando tu primer producto al catálogo</p>
+        <a th:href="@{/web/productos/create}" class="btn btn-primary">Crear Producto</a>
+    </div>
+
+    <!-- Script para auto-ocultar mensajes -->
+    <script th:replace="~{messages :: auto-hide-messages}"></script>
+</div>
+</body>
+</html>

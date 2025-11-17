@@ -1,0 +1,25 @@
+<div th:fragment="pedidoList(pedidos)">
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Dirección</th>
+            <th>Estado</th>
+            <th>Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(pedidos)}">
+            <td colspan="5">No hay pedidos registrados.</td>
+        </tr>
+        <tr th:each="p : ${pedidos}">
+            <td th:text="${p.id}">1</td>
+            <td th:text="${p.usuarioId}">1</td>
+            <td th:text="${p.direccionId}">1</td>
+            <td th:text="${p.estado}">CREADO</td>
+            <td th:text="${p.total}">0.00</td>
+        </tr>
+        </tbody>
+    </table>
+</div>

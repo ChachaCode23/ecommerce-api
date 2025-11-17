@@ -2,6 +2,7 @@ package com.urbancollection.ecommerce.api.web;
 
 import com.urbancollection.ecommerce.application.service.IUsuarioService;
 import com.urbancollection.ecommerce.domain.base.OperationResult;
+import com.urbancollection.ecommerce.domain.entity.logistica.Direccion;
 import com.urbancollection.ecommerce.domain.entity.usuarios.Usuario;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,9 +26,6 @@ public class UsuarioWebController {
         this.usuarioService = usuarioService;
     }
 
-    // =========================
-    // LISTADO /web/usuarios
-    // =========================
     @GetMapping
     public String listar(Model model) {
         try {
@@ -40,9 +38,6 @@ public class UsuarioWebController {
         }
     }
 
-    // =========================
-    // FORMULARIO CREAR /web/usuarios/create
-    // =========================
     @GetMapping("/create")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("nombre", "");
@@ -52,71 +47,85 @@ public class UsuarioWebController {
         return "usuario/create";
     }
 
-    // =========================
-    // GUARDAR POST /web/usuarios/create
-    // =========================
     @PostMapping("/create")
     public String crear(
             @RequestParam(value = "nombre", required = false) String nombre,
             @RequestParam(value = "correo", required = false) String correo,
             @RequestParam(value = "contrasena", required = false) String contrasena,
             @RequestParam(value = "rol", required = false) String rol,
+            @RequestParam(value = "direccion_linea1", required = false) String linea1,
+            @RequestParam(value = "direccion_linea2", required = false) String linea2,
+            @RequestParam(value = "direccion_ciudad", required = false) String ciudad,
+            @RequestParam(value = "direccion_provincia", required = false) String provincia,
+            @RequestParam(value = "direccion_codigo_postal", required = false) String codigoPostal,
+            @RequestParam(value = "direccion_pais", required = false) String pais,
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        // Validaciones
         if (nombre == null || nombre.trim().isEmpty()) {
-            return mostrarError(model, "El nombre es obligatorio", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "El nombre es obligatorio", nombre, correo, contrasena, rol);
         }
 
         if (nombre.trim().length() < 3) {
-            return mostrarError(model, "El nombre debe tener al menos 3 caracteres", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "El nombre debe tener al menos 3 caracteres", nombre, correo, contrasena, rol);
         }
 
         if (correo == null || correo.trim().isEmpty()) {
-            return mostrarError(model, "El correo es obligatorio", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "El correo es obligatorio", nombre, correo, contrasena, rol);
         }
 
         if (!correo.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            return mostrarError(model, "El correo no tiene un formato válido", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "El correo no tiene un formato válido", nombre, correo, contrasena, rol);
         }
 
         if (contrasena == null || contrasena.trim().isEmpty()) {
-            return mostrarError(model, "La contraseña es obligatoria", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "La contraseña es obligatoria", nombre, correo, contrasena, rol);
         }
 
         if (contrasena.trim().length() < 6) {
-            return mostrarError(model, "La contraseña debe tener al menos 6 caracteres", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "La contraseña debe tener al menos 6 caracteres", nombre, correo, contrasena, rol);
         }
 
         if (rol == null || rol.trim().isEmpty()) {
-            return mostrarError(model, "El rol es obligatorio", 
-                              nombre, correo, contrasena, rol);
+            return mostrarError(model, "El rol es obligatorio", nombre, correo, contrasena, rol);
+        }
+
+        if (linea1 == null || linea1.trim().isEmpty()) {
+            return mostrarError(model, "La dirección (línea 1) es obligatoria", nombre, correo, contrasena, rol);
+        }
+
+        if (ciudad == null || ciudad.trim().isEmpty()) {
+            return mostrarError(model, "La ciudad es obligatoria", nombre, correo, contrasena, rol);
+        }
+
+        if (pais == null || pais.trim().isEmpty()) {
+            return mostrarError(model, "El país es obligatorio", nombre, correo, contrasena, rol);
         }
 
         try {
-            // Crear usuario
             Usuario usuario = new Usuario();
             usuario.setNombre(nombre.trim());
             usuario.setCorreo(correo.trim().toLowerCase());
-            usuario.setContrasena(contrasena); // En producción debería hashearse
+            usuario.setContrasena(contrasena);
             usuario.setRol(rol.trim().toUpperCase());
 
-            OperationResult result = usuarioService.crear(usuario);
+            Direccion direccion = new Direccion();
+            direccion.setLinea1(linea1.trim());
+            direccion.setLinea2(linea2 != null ? linea2.trim() : null);
+            direccion.setCiudad(ciudad.trim());
+            direccion.setProvincia(provincia != null ? provincia.trim() : null);
+            direccion.setCodigoPostal(codigoPostal != null ? codigoPostal.trim() : null);
+            direccion.setPais(pais.trim());
+            direccion.setNombreContacto(nombre.trim());
+
+            OperationResult result = usuarioService.crearConDireccion(usuario, direccion);
 
             if (result.isSuccess()) {
                 redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Usuario '" + nombre + "' creado exitosamente");
+                    "✓ Usuario '" + nombre + "' creado exitosamente con su dirección");
                 return "redirect:/web/usuarios";
             } else {
-                return mostrarError(model, result.getMessage(), 
-                                  nombre, correo, contrasena, rol);
+                return mostrarError(model, result.getMessage(), nombre, correo, contrasena, rol);
             }
 
         } catch (Exception e) {
@@ -125,34 +134,38 @@ public class UsuarioWebController {
         }
     }
 
-    // =========================
-    // FORMULARIO EDITAR /web/usuarios/{id}/edit
-    // =========================
     @GetMapping("/{id}/edit")
     public String mostrarFormularioEditar(@PathVariable Long id, Model model,
                                          RedirectAttributes redirectAttributes) {
+        System.out.println("========== EDITAR USUARIO ==========");
+        System.out.println("ID recibido: " + id);
+        
         try {
             Optional<Usuario> usuarioOpt = usuarioService.buscarPorId(id);
+            System.out.println("Usuario encontrado: " + usuarioOpt.isPresent());
             
             if (!usuarioOpt.isPresent()) {
+                System.out.println("Usuario NO encontrado, redirigiendo...");
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "⚠ Usuario no encontrado");
                 return "redirect:/web/usuarios";
             }
 
-            model.addAttribute("usuario", usuarioOpt.get());
+            Usuario usuario = usuarioOpt.get();
+            System.out.println("Usuario: " + usuario.getNombre());
+            model.addAttribute("usuario", usuario);
+            System.out.println("Retornando vista: usuario/edit");
             return "usuario/edit";
 
         } catch (Exception e) {
+            System.out.println("EXCEPCIÓN: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "⚠ Error al cargar el usuario: " + e.getMessage());
             return "redirect:/web/usuarios";
         }
     }
 
-    // =========================
-    // ACTUALIZAR POST /web/usuarios/{id}/edit
-    // =========================
     @PostMapping("/{id}/edit")
     public String actualizar(
             @PathVariable Long id,
@@ -174,7 +187,6 @@ public class UsuarioWebController {
 
             Usuario usuario = usuarioOpt.get();
 
-            // Validaciones
             if (nombre == null || nombre.trim().isEmpty()) {
                 model.addAttribute("errorMessage", "El nombre es obligatorio");
                 model.addAttribute("usuario", usuario);
@@ -193,13 +205,11 @@ public class UsuarioWebController {
                 return "usuario/edit";
             }
 
-            // Crear objeto con cambios
             Usuario cambios = new Usuario();
             cambios.setNombre(nombre.trim());
             cambios.setCorreo(correo.trim().toLowerCase());
             cambios.setRol(rol != null ? rol.trim().toUpperCase() : usuario.getRol());
             
-            // Solo actualizar contraseña si se proporcionó una nueva
             if (contrasena != null && !contrasena.trim().isEmpty()) {
                 if (contrasena.trim().length() < 6) {
                     model.addAttribute("errorMessage", "La contraseña debe tener al menos 6 caracteres");
@@ -230,9 +240,6 @@ public class UsuarioWebController {
         }
     }
 
-    // =========================
-    // ELIMINAR POST /web/usuarios/{id}/delete
-    // =========================
     @PostMapping("/{id}/delete")
     public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -255,9 +262,6 @@ public class UsuarioWebController {
         }
     }
 
-    // =========================
-    // MÉTODO AUXILIAR PARA ERRORES
-    // =========================
     private String mostrarError(Model model, String mensaje,
                                String nombre, String correo, 
                                String contrasena, String rol) {

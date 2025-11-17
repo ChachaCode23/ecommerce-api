@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Crear Pedido',
+          breadcrumb='Pedidos / Crear Nuevo',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes -->
+    <div th:replace="~{messages :: messages}"></div>
+    
+    <div class="crear-pedido">
+        <!-- Botón volver -->
+        <div style="margin-bottom: 20px;">
+            <a th:href="@{/web/pedidos}" class="btn btn-secondary">
+                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al Listado
+            </a>
+        </div>
+
+        <h3 class="card-title">Crear Nuevo Pedido</h3>
+
+        <!-- Formulario con validaciones -->
+        <form th:action="@{/web/pedidos/create}" method="post" id="formCrearPedido" onsubmit="return validarFormulario()">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Usuario ID -->
+                <div class="form-group">
+                    <label for="usuarioId">
+                        Usuario ID <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="number" 
+                           id="usuarioId"
+                           name="usuarioId" 
+                           th:value="${usuarioId}" 
+                           required
+                           min="1"
+                           class="form-control">
+                    <small style="color: #6b7280; font-size: 12px;">Ingrese el ID del usuario que realiza el pedido</small>
+                </div>
+
+                <!-- Dirección ID -->
+                <div class="form-group">
+                    <label for="direccionId">
+                        Dirección ID <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="number" 
+                           id="direccionId"
+                           name="direccionId" 
+                           th:value="${direccionId}" 
+                           required
+                           min="1"
+                           class="form-control">
+                    <small style="color: #6b7280; font-size: 12px;">ID de la dirección de entrega</small>
+                </div>
+
+                <!-- Producto ID -->
+                <div class="form-group">
+                    <label for="productoId">
+                        Producto ID <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="number" 
+                           id="productoId"
+                           name="productoId" 
+                           th:value="${productoId}" 
+                           required
+                           min="1"
+                           class="form-control">
+                    <small style="color: #6b7280; font-size: 12px;">ID del producto a agregar al pedido</small>
+                </div>
+
+                <!-- Cantidad -->
+                <div class="form-group">
+                    <label for="cantidad">
+                        Cantidad <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="number" 
+                           id="cantidad"
+                           name="cantidad" 
+                           th:value="${cantidad}" 
+                           required
+                           min="1"
+                           max="999"
+                           class="form-control">
+                    <small style="color: #6b7280; font-size: 12px;">Cantidad del producto (mínimo 1)</small>
+                </div>
+
+                <!-- Cupón ID (opcional) -->
+                <div class="form-group">
+                    <label for="cuponId">
+                        Cupón ID <span style="color: #6b7280;">(opcional)</span>
+                    </label>
+                    <input type="number" 
+                           id="cuponId"
+                           name="cuponId" 
+                           th:value="${cuponId}"
+                           min="1"
+                           class="form-control">
+                    <small style="color: #6b7280; font-size: 12px;">ID del cupón de descuento (si aplica)</small>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-success">
+                    <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Crear Pedido
+                </button>
+                <a th:href="@{/web/pedidos}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Script de validación frontend -->
+    <script>
+        function validarFormulario() {
+            // Limpiar mensajes de error previos
+            const errorMessages = document.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => msg.remove());
+
+            let esValido = true;
+
+            // Validar Usuario ID
+            const usuarioId = document.getElementById('usuarioId');
+            if (!usuarioId.value || parseInt(usuarioId.value) < 1) {
+                mostrarError(usuarioId, 'El ID de usuario debe ser mayor a 0');
+                esValido = false;
+            }
+
+            // Validar Dirección ID
+            const direccionId = document.getElementById('direccionId');
+            if (!direccionId.value || parseInt(direccionId.value) < 1) {
+                mostrarError(direccionId, 'El ID de dirección debe ser mayor a 0');
+                esValido = false;
+            }
+
+            // Validar Producto ID
+            const productoId = document.getElementById('productoId');
+            if (!productoId.value || parseInt(productoId.value) < 1) {
+                mostrarError(productoId, 'El ID de producto debe ser mayor a 0');
+                esValido = false;
+            }
+
+            // Validar Cantidad
+            const cantidad = document.getElementById('cantidad');
+            if (!cantidad.value || parseInt(cantidad.value) < 1) {
+                mostrarError(cantidad, 'La cantidad debe ser mayor a 0');
+                esValido = false;
+            } else if (parseInt(cantidad.value) > 999) {
+                mostrarError(cantidad, 'La cantidad no puede exceder 999 unidades');
+                esValido = false;
+            }
+
+            // Validar Cupón ID (opcional, pero si se ingresa debe ser válido)
+            const cuponId = document.getElementById('cuponId');
+            if (cuponId.value && parseInt(cuponId.value) < 1) {
+                mostrarError(cuponId, 'El ID de cupón debe ser mayor a 0 o dejarlo vacío');
+                esValido = false;
+            }
+
+            if (!esValido) {
+                // Scroll al primer error
+                const primerError = document.querySelector('.error-message');
+                if (primerError) {
+                    primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            return esValido;
+        }
+
+        function mostrarError(input, mensaje) {
+            // Agregar clase de error al input
+            input.style.borderColor = '#ef4444';
+            
+            // Crear mensaje de error
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.color = '#ef4444';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.marginTop = '5px';
+            errorDiv.textContent = mensaje;
+            
+            // Insertar después del input
+            input.parentNode.appendChild(errorDiv);
+        }
+
+        // Limpiar error cuando el usuario empieza a escribir
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', function() {
+                this.style.borderColor = '';
+                const errorMsg = this.parentNode.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            });
+        });
+    </script>
+
+    <!-- Script para auto-ocultar mensajes -->
+    <script th:replace="~{messages :: auto-hide-messages}"></script>
+</div>
+</body>
+</html>

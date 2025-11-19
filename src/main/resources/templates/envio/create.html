@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Crear Envío',
+          breadcrumb='Envíos / Crear Nuevo',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes Flash -->
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" style="margin-bottom: 20px;">
+        <strong>⚠</strong> <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Botón volver -->
+    <div style="margin-bottom: 20px;">
+        <a th:href="@{/web/envios}" class="btn btn-secondary">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Volver al Listado
+        </a>
+    </div>
+
+    <h3 class="card-title">Crear Nuevo Envío</h3>
+
+    <!-- Formulario -->
+    <form th:action="@{/web/envios/create}" method="post" id="formCrearEnvio" onsubmit="return validarFormulario()">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Pedido -->
+            <div class="form-group">
+                <label for="pedidoId">
+                    Pedido <span style="color: #ef4444;">*</span>
+                </label>
+                <select id="pedidoId" name="pedidoId" required>
+                    <option value="">-- Seleccione un pedido --</option>
+                    <option th:each="pedido : ${pedidos}" 
+                            th:value="${pedido.id}"
+                            th:text="${'Pedido #' + pedido.id + ' - Usuario ' + (pedido.usuario != null ? pedido.usuario.id : 'N/A') + ' - $' + #numbers.formatDecimal(pedido.total, 1, 2)}"
+                            th:selected="${pedidoId != null && pedidoId == pedido.id}">
+                        Pedido #001 - Usuario 1 - $1,250.00
+                    </option>
+                </select>
+                <small style="color: #6b7280; font-size: 12px;">Seleccione el pedido al que se asociará el envío</small>
+            </div>
+
+            <!-- Tracking -->
+            <div class="form-group">
+                <label for="tracking">
+                    Código de Tracking <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" 
+                       id="tracking"
+                       name="tracking" 
+                       th:value="${tracking}" 
+                       required
+                       minlength="5"
+                       maxlength="100"
+                       placeholder="Ej: TRK123456789"
+                       style="font-family: monospace;">
+                <small style="color: #6b7280; font-size: 12px;">Código único proporcionado por la empresa de envíos (mín. 5 caracteres)</small>
+            </div>
+
+            <!-- Estado -->
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="estado">
+                    Estado del Envío <span style="color: #ef4444;">*</span>
+                </label>
+                <select id="estado" name="estado" required>
+                    <option value="">-- Seleccione un estado --</option>
+                    <option value="PENDIENTE" th:selected="${estado == 'PENDIENTE' or estado == null}">⏳ PENDIENTE</option>
+                    <option value="EN_TRANSITO" th:selected="${estado == 'EN_TRANSITO'}">🚚 EN TRÁNSITO</option>
+                    <option value="ENTREGADO" th:selected="${estado == 'ENTREGADO'}">✅ ENTREGADO</option>
+                </select>
+                <small style="color: #6b7280; font-size: 12px;">Estado inicial del envío</small>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; margin: 20px 0;">
+            <h4 style="margin-bottom: 15px; color: #1e40af; font-size: 14px; font-weight: 600;">
+                ℹ️ Información Importante
+            </h4>
+            <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 13px;">
+                <li>El código de tracking debe ser único en el sistema</li>
+                <li>Solo se muestran pedidos disponibles para envío</li>
+                <li>El estado puede ser modificado posteriormente</li>
+            </ul>
+        </div>
+
+        <!-- Botones -->
+        <div style="margin-top: 30px; display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">
+                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Crear Envío
+            </button>
+            <a th:href="@{/web/envios}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    <!-- Script de validación -->
+    <script>
+        function validarFormulario() {
+            const errorMessages = document.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => msg.remove());
+
+            let esValido = true;
+
+            // Validar Pedido
+            const pedidoId = document.getElementById('pedidoId');
+            if (!pedidoId.value) {
+                mostrarError(pedidoId, 'Debe seleccionar un pedido');
+                esValido = false;
+            }
+
+            // Validar Tracking
+            const tracking = document.getElementById('tracking');
+            if (!tracking.value || tracking.value.trim().length < 5) {
+                mostrarError(tracking, 'El tracking debe tener al menos 5 caracteres');
+                esValido = false;
+            }
+
+            // Validar Estado
+            const estado = document.getElementById('estado');
+            if (!estado.value) {
+                mostrarError(estado, 'Debe seleccionar un estado');
+                esValido = false;
+            }
+
+            if (!esValido) {
+                const primerError = document.querySelector('.error-message');
+                if (primerError) {
+                    primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            return esValido;
+        }
+
+        function mostrarError(input, mensaje) {
+            input.style.borderColor = '#ef4444';
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.color = '#ef4444';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.marginTop = '5px';
+            errorDiv.textContent = mensaje;
+            
+            input.parentNode.appendChild(errorDiv);
+        }
+
+        // Limpiar errores al escribir
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('input', function() {
+                this.style.borderColor = '';
+                const errorMsg = this.parentNode.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

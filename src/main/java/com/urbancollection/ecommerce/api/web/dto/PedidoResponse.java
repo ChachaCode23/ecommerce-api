@@ -11,10 +11,12 @@ public class PedidoResponse {
     private Long direccionId;
     private Long cuponId; // opcional: id del cupón aplicado
     private String estado;
+    private String metodoPago; // método de pago utilizado
     private BigDecimal subtotal;
     private BigDecimal descuento;
     private BigDecimal envio;
     private BigDecimal total;
+    private Integer cantidadTotal; //  cantidad total de items
     private LocalDateTime fecha;
     private List<ItemPedidoResponse> items;
 
@@ -59,6 +61,15 @@ public class PedidoResponse {
         this.estado = estado;
     }
 
+    //  Getter y Setter para metodoPago
+    public String getMetodoPago() {
+        return metodoPago;
+    }
+
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
+
     public BigDecimal getSubtotal() {
         return subtotal;
     }
@@ -89,6 +100,15 @@ public class PedidoResponse {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
+    }
+
+    // ✅ NUEVO: Getter y Setter para cantidadTotal
+    public Integer getCantidadTotal() {
+        return cantidadTotal;
+    }
+
+    public void setCantidadTotal(Integer cantidadTotal) {
+        this.cantidadTotal = cantidadTotal;
     }
 
     public LocalDateTime getFecha() {

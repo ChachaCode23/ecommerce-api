@@ -9,8 +9,8 @@ import java.util.Map;
 /**
  * Este controlador es básicamente un "chequeo rápido" de la base de datos.
  *
- * La idea de esto es: yo quiero saber si la API está conectando bien
- * a la base de datos y que la tabla principal (Producto) existe y tiene datos.
+ * La idea de esto es  saber si la API está conectando bien
+ * a la base de datos y que la tabla principal Producto existe y tiene datos.
  *
  * Este endpoint NO es para el usuario final, es más para desarrollo / pruebas.
  *

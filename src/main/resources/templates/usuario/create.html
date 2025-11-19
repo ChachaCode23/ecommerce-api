@@ -53,8 +53,10 @@
                        th:value="${correo}" 
                        required
                        maxlength="150"
+                       pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                       title="Ingrese un correo válido (ejemplo: usuario@dominio.com)"
                        placeholder="usuario@ejemplo.com">
-                <small style="color: #6b7280; font-size: 12px;">Debe ser un correo válido</small>
+                <small style="color: #6b7280; font-size: 12px;">Debe ser un correo válido con punto antes de la extensión</small>
             </div>
 
             <div class="form-group">

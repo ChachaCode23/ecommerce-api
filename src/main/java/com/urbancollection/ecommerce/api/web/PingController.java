@@ -23,9 +23,6 @@ public class PingController {
    * Esta ruta devuelve literalmente el string "pong".
    * Es el típico ping/pong de salud.
    *
-   * Ejemplo:
-   *   GET http://localhost:8080/ping
-   *   Respuesta: pong
    *
    * Si esto responde "pong", ya sabemos que:
    *   - el servidor Spring Boot está corriendo
@@ -45,9 +42,6 @@ public class PingController {
    * Esta es la ruta raíz de la API.
    * Devuelve un mensaje corto diciendo "API online".
    *
-   * Ejemplo:
-   *   GET http://localhost:8080/
-   *   Respuesta: API online
    *
    * Esto ayuda:
    *   cuando abres el navegador sin ruta, ves que el backend sí levantó.

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Detalle del Pedido',
+          breadcrumb='Pedidos / Detalle',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes Flash -->
+    <div th:if="${successMessage}" class="alert alert-success" role="alert" style="margin-bottom: 20px;">
+        <strong>✔</strong> <span th:text="${successMessage}"></span>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" style="margin-bottom: 20px;">
+        <strong>⚠</strong> <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Botón volver -->
+    <div style="margin-bottom: 20px;">
+        <a th:href="@{/web/pedidos}" class="btn btn-secondary">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Volver al Listado
+        </a>
+    </div>
+
+    <!-- Título con ID del pedido -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h3 class="card-title">
+            Pedido <span th:text="'#' + ${pedido.id}">#001</span>
+        </h3>
+        <span th:text="${pedido.estado}" 
+              style="padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;"
+              th:style="${pedido.estado == 'PAGADO' ? 'background: #d1fae5; color: #065f46;' : 
+                         pedido.estado == 'COMPLETADO' ? 'background: #a7f3d0; color: #047857;' :
+                         pedido.estado == 'PENDIENTE_PAGO' ? 'background: #fef3c7; color: #92400e;' : 
+                         pedido.estado == 'ENVIADO' ? 'background: #dbeafe; color: #1e40af;' :
+                         pedido.estado == 'CANCELADO' ? 'background: #fee2e2; color: #991b1b;' :
+                         'background: #e5e7eb; color: #374151;'}">
+            Estado
+        </span>
+    </div>
+
+    <!-- Grid de información principal -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        
+        <!-- Información del Usuario -->
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h4 style="margin-bottom: 15px; color: #374151; font-size: 16px; font-weight: 600;">
+                👤 Información del Usuario
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <span style="color: #6b7280; font-size: 13px;">Usuario ID:</span>
+                    <strong th:text="${pedido.usuarioId}" style="display: block; font-size: 14px;">1</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de la Dirección -->
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h4 style="margin-bottom: 15px; color: #374151; font-size: 16px; font-weight: 600;">
+                🏠 Dirección de Entrega
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <span style="color: #6b7280; font-size: 13px;">Dirección ID:</span>
+                    <strong th:text="${pedido.direccionId}" style="display: block; font-size: 14px;">1</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ NUEVO: Información del Método de Pago -->
+    <div th:if="${pedido.metodoPago != null}" style="margin-bottom: 30px;">
+        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe;">
+            <h4 style="margin-bottom: 15px; color: #1e40af; font-size: 16px; font-weight: 600;">
+                💳 Método de Pago
+            </h4>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- Icono según método de pago -->
+                <span th:if="${pedido.metodoPago == 'TARJETA'}" style="font-size: 32px;">💳</span>
+                <span th:if="${pedido.metodoPago == 'PAYPAL'}" style="font-size: 32px;">🅿️</span>
+                <span th:if="${pedido.metodoPago == 'TRANSFERENCIA'}" style="font-size: 32px;">🏦</span>
+                
+                <!-- Texto del método -->
+                <div>
+                    <span style="color: #60a5fa; font-size: 13px;">Pagado con:</span>
+                    <strong style="display: block; font-size: 16px; color: #1e40af;">
+                        <span th:if="${pedido.metodoPago == 'TARJETA'}">Tarjeta de Crédito/Débito</span>
+                        <span th:if="${pedido.metodoPago == 'PAYPAL'}">PayPal</span>
+                        <span th:if="${pedido.metodoPago == 'TRANSFERENCIA'}">Transferencia Bancaria</span>
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items del Pedido -->
+    <div style="margin-bottom: 30px;">
+        <h4 style="margin-bottom: 15px; color: #374151; font-size: 16px; font-weight: 600; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+            📦 Items del Pedido
+        </h4>
+        
+        <table th:if="${pedido.items != null and !pedido.items.isEmpty()}">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th style="text-align: center;">Cantidad</th>
+                    <th style="text-align: right;">Precio Unitario</th>
+                    <th style="text-align: right;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item : ${pedido.items}">
+                    <td>
+                        <div>
+                            <strong th:text="'Producto ID: ' + ${item.productoId}">Producto #1</strong>
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        <span th:text="${item.cantidad}" style="font-weight: 600;">1</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <span th:text="${'$' + #numbers.formatDecimal(item.precioUnitario, 1, 2)}">$0.00</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <strong th:text="${'$' + #numbers.formatDecimal(item.subtotal, 1, 2)}">$0.00</strong>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div th:if="${pedido.items == null or pedido.items.isEmpty()}" 
+             style="text-align: center; padding: 40px; color: #9ca3af; background: #f9fafb; border-radius: 8px;">
+            <p>No hay items en este pedido</p>
+        </div>
+    </div>
+
+    <!-- Resumen de Totales -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
+        <div style="width: 400px; background: #f9fafb; padding: 25px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h4 style="margin-bottom: 20px; color: #374151; font-size: 16px; font-weight: 600;">
+                💰 Resumen de Totales
+            </h4>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
+                    <span style="color: #6b7280;">Subtotal:</span>
+                    <span th:text="${'$' + #numbers.formatDecimal(pedido.subtotal, 1, 2)}" style="font-weight: 500;">$0.00</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
+                    <span style="color: #6b7280;">Descuento:</span>
+                    <span th:text="${'- $' + #numbers.formatDecimal(pedido.descuento, 1, 2)}" style="font-weight: 500; color: #059669;">-$0.00</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
+                    <span style="color: #6b7280;">Envío:</span>
+                    <span th:text="${'$' + #numbers.formatDecimal(pedido.envio, 1, 2)}" style="font-weight: 500;">$0.00</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding-top: 15px; border-top: 2px solid #d1d5db;">
+                    <span style="font-size: 18px; font-weight: 700; color: #1f2937;">Total:</span>
+                    <span th:text="${'$' + #numbers.formatDecimal(pedido.total, 1, 2)}" 
+                          style="font-size: 20px; font-weight: 700; color: #3b82f6;">$0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de Cupón (si existe) -->
+    <div th:if="${pedido.cuponId != null}" style="margin-bottom: 20px;">
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border: 1px solid #fde68a;">
+            <h4 style="margin-bottom: 15px; color: #92400e; font-size: 16px; font-weight: 600;">
+                🎟️ Cupón Aplicado
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <span style="color: #d97706; font-size: 13px;">Cupón ID:</span>
+                    <strong th:text="${pedido.cuponId}" style="display: block; font-size: 14px; color: #92400e;">1</strong>
+                </div>
+                <div>
+                    <span style="color: #d97706; font-size: 13px;">Descuento aplicado:</span>
+                    <strong th:text="${'$' + #numbers.formatDecimal(pedido.descuento, 1, 2)}" 
+                            style="display: block; font-size: 16px; color: #059669;">$0.00</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div style="margin-top: 30px; display: flex; gap: 10px;">
+        <a th:href="@{/web/pedidos}" class="btn btn-secondary">
+            Volver al Listado
+        </a>
+        
+        <!-- ✅ Botón Marcar como Pagado (solo si está PENDIENTE_PAGO) -->
+        <button th:if="${pedido.estado == 'PENDIENTE_PAGO'}" 
+                type="button" 
+                class="btn btn-success"
+                onclick="mostrarModalPago()">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Marcar como Pagado
+        </button>
+        
+        <!-- ✅ Botón Eliminar -->
+        <form th:action="@{/web/pedidos/{id}/delete(id=${pedido.id})}" method="post" style="display: inline;"
+              onsubmit="return confirm('¿Está seguro de que desea eliminar este pedido?');">
+            <button type="submit" class="btn btn-danger">
+                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Eliminar Pedido
+            </button>
+        </form>
+    </div>
+
+    <!-- ✅ MODAL DE PAGO -->
+    <div id="modalPago" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%;">
+            <h3 style="margin: 0 0 20px 0; color: #1f2937;">Confirmar Pago</h3>
+            
+            <form th:action="@{/web/pedidos/{id}/marcar-pagado(id=${pedido.id})}" method="post" id="formPago">
+                <div class="form-group">
+                    <label for="metodoPago" style="font-weight: 600; margin-bottom: 10px; display: block;">
+                        Seleccione el método de pago:
+                    </label>
+                    <select id="metodoPago" name="metodoPago" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <option value="">-- Seleccione --</option>
+                        <option value="TARJETA">💳 Tarjeta de Crédito/Débito</option>
+                        <option value="PAYPAL">🅿️ PayPal</option>
+                        <option value="TRANSFERENCIA">🏦 Transferencia Bancaria</option>
+                    </select>
+                </div>
+                
+                <div style="margin-top: 25px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">
+                        Confirmar Pago
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalPago()" style="flex: 1;">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function mostrarModalPago() {
+            document.getElementById('modalPago').style.display = 'flex';
+        }
+        
+        function cerrarModalPago() {
+            document.getElementById('modalPago').style.display = 'none';
+        }
+        
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modalPago').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalPago();
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

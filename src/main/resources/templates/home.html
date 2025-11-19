@@ -2,20 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: layout(
           pageTitle='Dashboard - UrbanShop',
-          breadcrumb='Inicio',
-          contentFragment=~{::content}
+          contentFragment=~{::content},
+          breadcrumb='Inicio'
       )}">
 <body>
 <div th:fragment="content">
-    <!-- Mensajes -->
     <div th:replace="~{messages :: messages}"></div>
 
     <div class="dashboard">
         <h1 style="font-size: 32px; margin-bottom: 30px; color: #1f2937;">Panel de Control</h1>
 
-        <!-- Tarjetas de estadísticas -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <!-- Total Pedidos -->
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -28,7 +25,6 @@
                 </div>
             </div>
 
-            <!-- Total Productos -->
             <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -41,7 +37,6 @@
                 </div>
             </div>
 
-            <!-- Total Usuarios -->
             <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -54,7 +49,6 @@
                 </div>
             </div>
 
-            <!-- Ventas del Día -->
             <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -68,7 +62,6 @@
             </div>
         </div>
 
-        <!-- Accesos rápidos -->
         <div style="margin-top: 40px;">
             <h2 style="font-size: 20px; margin-bottom: 20px; color: #1f2937; font-weight: 600;">Accesos Rápidos</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
@@ -102,7 +95,6 @@
             </div>
         </div>
 
-        <!-- Últimos pedidos -->
         <div style="margin-top: 40px;">
             <h2 style="font-size: 20px; margin-bottom: 20px; color: #1f2937; font-weight: 600;">Últimos Pedidos</h2>
             <div th:if="${ultimosPedidos != null and !ultimosPedidos.isEmpty()}">
@@ -146,7 +138,6 @@
         </div>
     </div>
 
-    <!-- Script para auto-ocultar mensajes -->
     <script th:replace="~{messages :: auto-hide-messages}"></script>
 </div>
 </body>

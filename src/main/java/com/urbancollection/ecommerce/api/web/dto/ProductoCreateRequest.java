@@ -15,5 +15,5 @@ package com.urbancollection.ecommerce.api.web.dto;
  *
  */
 public class ProductoCreateRequest extends BaseProductoRequest {
-    // Por ahora no agrego nada nuevo, hereda todo de BaseProductoRequest.
+    // Por ahora no agregue nada nuevo, hereda todo de BaseProductoRequest.
 }

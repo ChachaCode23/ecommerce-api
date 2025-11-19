@@ -45,4 +45,14 @@ public class DireccionRepositoryJpaAdapter implements DireccionRepository {
     public void deleteById(Long id) {
         jpa.deleteById(id);
     }
+
+    @Override
+    public Direccion findPrincipalByUsuarioId(Integer usuarioId) {
+        if (usuarioId == null) return null;
+        return jpa.findAll().stream()
+                .filter(d -> d.getUsuarioId() != null && d.getUsuarioId().equals(usuarioId))
+                .filter(d -> d.getEsPrincipal() != null && d.getEsPrincipal())
+                .findFirst()
+                .orElse(null);
+    }
 }

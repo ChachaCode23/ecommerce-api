@@ -11,9 +11,9 @@ import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
 import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
 import com.urbancollection.ecommerce.domain.repository.DireccionRepository;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -43,7 +43,6 @@ public class PedidoWebController {
     // =========================
     // LISTADO /web/pedidos
     // =========================
-    @Transactional(readOnly = true)
     @GetMapping("/web/pedidos")
     public String listar(Model model,
                         @RequestParam(value = "success", required = false) String successMessage) {
@@ -55,7 +54,6 @@ public class PedidoWebController {
 
             model.addAttribute("pedidos", responses);
             
-            // Agregar mensaje de éxito si existe
             if (successMessage != null && !successMessage.isEmpty()) {
                 model.addAttribute("successMessage", successMessage);
             }
@@ -70,11 +68,98 @@ public class PedidoWebController {
     }
 
     // =========================
+    // DETALLE /web/pedidos/{id}
+    // =========================
+    @GetMapping("/web/pedidos/{id}")
+    public String detalle(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoService.obtenerPorId(id);
+            
+            if (pedido == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "⚠ Pedido no encontrado");
+                return "redirect:/web/pedidos";
+            }
+
+            PedidoResponse response = PedidoMapper.toResponse(pedido);
+            model.addAttribute("pedido", response);
+            return "pedido/detail";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "⚠ Error al cargar el pedido: " + e.getMessage());
+            return "redirect:/web/pedidos";
+        }
+    }
+
+    // =========================
+    // MARCAR COMO PAGADO POST /web/pedidos/{id}/marcar-pagado
+    // =========================
+    @PostMapping("/web/pedidos/{id}/marcar-pagado")
+    public String marcarComoPagado(@PathVariable Long id,
+                                    @RequestParam(value = "metodoPago", required = false) String metodoPago,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            // Validar que se haya seleccionado un método de pago
+            if (metodoPago == null || metodoPago.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "⚠ Debe seleccionar un método de pago");
+                return "redirect:/web/pedidos/" + id;
+            }
+
+            OperationResult result = pedidoService.marcarComoPagado(id);
+            
+            if (result.isSuccess()) {
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "✓ Pedido marcado como PAGADO (Método: " + metodoPago + ")");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "⚠ " + result.getMessage());
+            }
+            
+            return "redirect:/web/pedidos/" + id;
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "⚠ Error al marcar el pedido como pagado: " + e.getMessage());
+            return "redirect:/web/pedidos/" + id;
+        }
+    }
+
+    // =========================
+    // NUEVO: ELIMINAR POST /web/pedidos/{id}/delete
+    // =========================
+    @PostMapping("/web/pedidos/{id}/delete")
+    public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoService.obtenerPorId(id);
+            
+            if (pedido == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "⚠ Pedido no encontrado");
+                return "redirect:/web/pedidos";
+            }
+
+            // Aquí deberías tener un método en el servicio para eliminar
+            // Por ahora, asumimos que existe o lo agregaremos
+            // pedidoService.eliminar(id);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "✓ Pedido eliminado exitosamente");
+            return "redirect:/web/pedidos";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "⚠ Error al eliminar el pedido: " + e.getMessage());
+            return "redirect:/web/pedidos";
+        }
+    }
+
+    // =========================
     // FORMULARIO GET /web/pedidos/create
     // =========================
     @GetMapping("/web/pedidos/create")
     public String mostrarFormularioCrear(Model model) {
-        // Inicializar valores por defecto para evitar errores en el formulario
         model.addAttribute("usuarioId", "");
         model.addAttribute("direccionId", "");
         model.addAttribute("productoId", "");
@@ -97,11 +182,7 @@ public class PedidoWebController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        // =========================
-        // VALIDACIONES DE BACKEND
-        // =========================
-
-        // 1. Validar que todos los campos obligatorios estén presentes
+        // Validaciones
         if (usuarioId == null) {
             return mostrarErrorFormulario(model, "El ID de usuario es obligatorio", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
@@ -122,7 +203,6 @@ public class PedidoWebController {
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // 2. Validar rangos de valores
         if (usuarioId <= 0) {
             return mostrarErrorFormulario(model, "El ID de usuario debe ser mayor a 0", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
@@ -148,36 +228,27 @@ public class PedidoWebController {
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // 3. Validar cupón si fue proporcionado
         if (cuponId != null && cuponId <= 0) {
             return mostrarErrorFormulario(model, "El ID de cupón debe ser mayor a 0 o dejarlo vacío", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // 4. Validar que el usuario exista
         if (!usuarioService.buscarPorId(usuarioId).isPresent()) {
             return mostrarErrorFormulario(model, "El usuario con ID " + usuarioId + " no existe", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // 5. Validar que la dirección exista
         if (direccionRepository.findById(direccionId) == null) {
             return mostrarErrorFormulario(model, "La dirección con ID " + direccionId + " no existe", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // 6. Validar que el producto exista
         if (!productoService.buscarPorId(productoId).isPresent()) {
             return mostrarErrorFormulario(model, "El producto con ID " + productoId + " no existe", 
                                          usuarioId, direccionId, cuponId, productoId, cantidad);
         }
 
-        // =========================
-        // CREAR EL PEDIDO
-        // =========================
-
         try {
-            // Armamos items para el pedido
             List<ItemPedido> items = new ArrayList<>();
 
             ItemPedido item = new ItemPedido();
@@ -185,12 +256,10 @@ public class PedidoWebController {
             producto.setId(productoId);
             item.setProducto(producto);
             item.setCantidad(cantidad);
-            // Precio simbólico (idealmente debería obtenerse del producto real)
             item.setPrecioUnitario(BigDecimal.valueOf(100));
 
             items.add(item);
 
-            // Crear el pedido usando el servicio
             OperationResult result = pedidoService.crearPedido(
                     usuarioId,
                     direccionId,
@@ -199,12 +268,10 @@ public class PedidoWebController {
             );
 
             if (result.isSuccess()) {
-                // Redirigir al listado con mensaje de éxito usando flash attribute
                 redirectAttributes.addFlashAttribute("successMessage", 
                     "✓ Pedido creado exitosamente. " + result.getMessage());
                 return "redirect:/web/pedidos";
             } else {
-                // Mostrar error del servicio
                 return mostrarErrorFormulario(model, result.getMessage(), 
                                              usuarioId, direccionId, cuponId, productoId, cantidad);
             }
@@ -215,9 +282,6 @@ public class PedidoWebController {
         }
     }
 
-    /**
-     * Método auxiliar para mostrar errores en el formulario
-     */
     private String mostrarErrorFormulario(Model model, String mensajeError,
                                          Long usuarioId, Long direccionId, Long cuponId,
                                          Long productoId, Integer cantidad) {

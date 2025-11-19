@@ -123,7 +123,7 @@ public class CuponWebController {
             cupon.setMinimoCompra(minimoCompra);
             cupon.setTopeDescuento(topeDescuento);
 
-            // Parsear fechas si fueron proporcionadas
+            // analiza si las fechas fueron proporcionadas
             if (fechaInicio != null && !fechaInicio.trim().isEmpty()) {
                 cupon.setFechaInicio(LocalDateTime.parse(fechaInicio + "T00:00:00"));
             }

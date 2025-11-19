@@ -31,6 +31,7 @@
                         <th>Usuario</th>
                         <th>Dirección</th>
                         <th>Estado</th>
+                        <th>Cantidad</th>
                         <th>Total</th>
                         <th>Acciones</th>
                     </tr>
@@ -53,6 +54,9 @@
                                              'background: #e5e7eb; color: #374151;'}">
                                 Estado
                             </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <strong th:text="${pedido.cantidadTotal != null ? pedido.cantidadTotal + ' items' : '0 items'}">0 items</strong>
                         </td>
                         <td>
                             <strong th:text="${'$' + #numbers.formatDecimal(pedido.total, 1, 2)}">$0.00</strong>

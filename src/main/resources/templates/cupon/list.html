@@ -66,15 +66,22 @@
                         </span>
                     </td>
                     <td style="font-size: 12px;">
+                        <!-- Verificar si está expirado -->
+                        <div th:if="${cupon.fechaFin != null and #temporals.createNow().isAfter(cupon.fechaFin)}" 
+                             style="padding: 4px 10px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 5px; font-weight: 600;">
+                            ⚠ EXPIRADO
+                        </div>
+                        
                         <div th:if="${cupon.fechaInicio != null}">
                             <span style="color: #6b7280;">Desde:</span>
                             <span th:text="${#temporals.format(cupon.fechaInicio, 'dd/MM/yyyy')}">01/01/2025</span>
                         </div>
                         <div th:if="${cupon.fechaFin != null}">
                             <span style="color: #6b7280;">Hasta:</span>
-                            <span th:text="${#temporals.format(cupon.fechaFin, 'dd/MM/yyyy')}">31/12/2025</span>
+                            <span th:text="${#temporals.format(cupon.fechaFin, 'dd/MM/yyyy')}" 
+                                  th:style="${#temporals.createNow().isAfter(cupon.fechaFin) ? 'color: #991b1b; font-weight: 600;' : ''}">31/12/2025</span>
                         </div>
-                        <span th:if="${cupon.fechaInicio == null and cupon.fechaFin == null}">Sin límite</span>
+                        <span th:if="${cupon.fechaInicio == null and cupon.fechaFin == null}" style="color: #059669; font-weight: 500;">Sin límite</span>
                     </td>
                     <td>
                         <div style="display: flex; gap: 8px;">

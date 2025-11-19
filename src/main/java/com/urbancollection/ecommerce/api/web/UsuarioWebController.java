@@ -4,6 +4,7 @@ import com.urbancollection.ecommerce.application.service.IUsuarioService;
 import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.logistica.Direccion;
 import com.urbancollection.ecommerce.domain.entity.usuarios.Usuario;
+import com.urbancollection.ecommerce.domain.repository.DireccionRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,11 +22,14 @@ import java.util.Optional;
 public class UsuarioWebController {
 
     private final IUsuarioService usuarioService;
+    private final DireccionRepository direccionRepository;
 
-    public UsuarioWebController(IUsuarioService usuarioService) {
+    public UsuarioWebController(IUsuarioService usuarioService, DireccionRepository direccionRepository) {
         this.usuarioService = usuarioService;
+        this.direccionRepository = direccionRepository;
     }
 
+ // Muestra la página con el listado de usuarios.
     @GetMapping
     public String listar(Model model) {
         try {
@@ -38,6 +42,7 @@ public class UsuarioWebController {
         }
     }
 
+ // Muestra el formulario para crear un nuevo usuario.
     @GetMapping("/create")
     public String mostrarFormularioCrear(Model model) {
         model.addAttribute("nombre", "");
@@ -47,6 +52,7 @@ public class UsuarioWebController {
         return "usuario/create";
     }
 
+    // Procesa el formulario de creación de usuario y su dirección principal.
     @PostMapping("/create")
     public String crear(
             @RequestParam(value = "nombre", required = false) String nombre,
@@ -122,7 +128,7 @@ public class UsuarioWebController {
 
             if (result.isSuccess()) {
                 redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Usuario '" + nombre + "' creado exitosamente con su dirección");
+                    "✔ Usuario '" + nombre + "' creado exitosamente con su dirección");
                 return "redirect:/web/usuarios";
             } else {
                 return mostrarError(model, result.getMessage(), nombre, correo, contrasena, rol);
@@ -134,6 +140,7 @@ public class UsuarioWebController {
         }
     }
 
+ // Muestra el formulario de edición para el usuario seleccionado.
     @GetMapping("/{id}/edit")
     public String mostrarFormularioEditar(@PathVariable Long id, Model model,
                                          RedirectAttributes redirectAttributes) {
@@ -154,9 +161,19 @@ public class UsuarioWebController {
             Usuario usuario = usuarioOpt.get();
             System.out.println("Usuario: " + usuario.getNombre());
             model.addAttribute("usuario", usuario);
+
+            //  Cargar la dirección principal del usuario
+            Direccion direccion = direccionRepository.findPrincipalByUsuarioId(usuario.getId().intValue());
+            System.out.println("Dirección encontrada: " + (direccion != null));
+            if (direccion != null) {
+                System.out.println("  - Ciudad: " + direccion.getCiudad());
+                System.out.println("  - Línea1: " + direccion.getLinea1());
+            }
+            model.addAttribute("direccion", direccion);
+
             System.out.println("Retornando vista: usuario/edit");
             return "usuario/edit";
-
+            
         } catch (Exception e) {
             System.out.println("EXCEPCIÓN: " + e.getMessage());
             e.printStackTrace();
@@ -166,6 +183,7 @@ public class UsuarioWebController {
         }
     }
 
+    // Procesa el formulario de edición y actualiza el usuario y su dirección
     @PostMapping("/{id}/edit")
     public String actualizar(
             @PathVariable Long id,
@@ -173,6 +191,12 @@ public class UsuarioWebController {
             @RequestParam(value = "correo", required = false) String correo,
             @RequestParam(value = "contrasena", required = false) String contrasena,
             @RequestParam(value = "rol", required = false) String rol,
+            @RequestParam(value = "direccion_linea1", required = false) String linea1,
+            @RequestParam(value = "direccion_linea2", required = false) String linea2,
+            @RequestParam(value = "direccion_ciudad", required = false) String ciudad,
+            @RequestParam(value = "direccion_provincia", required = false) String provincia,
+            @RequestParam(value = "direccion_codigo_postal", required = false) String codigoPostal,
+            @RequestParam(value = "direccion_pais", required = false) String pais,
             Model model,
             RedirectAttributes redirectAttributes) {
 
@@ -205,6 +229,7 @@ public class UsuarioWebController {
                 return "usuario/edit";
             }
 
+            // Actualizar usuario
             Usuario cambios = new Usuario();
             cambios.setNombre(nombre.trim());
             cambios.setCorreo(correo.trim().toLowerCase());
@@ -223,15 +248,50 @@ public class UsuarioWebController {
 
             OperationResult result = usuarioService.actualizar(id, cambios);
 
-            if (result.isSuccess()) {
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Usuario actualizado exitosamente");
-                return "redirect:/web/usuarios";
-            } else {
+            if (!result.isSuccess()) {
                 model.addAttribute("errorMessage", result.getMessage());
                 model.addAttribute("usuario", usuario);
                 return "usuario/edit";
             }
+
+            //  Actualizar dirección
+            Direccion direccion = direccionRepository.findPrincipalByUsuarioId(usuario.getId().intValue());
+            
+            if (direccion != null) {
+                // Actualiza dirección existente
+                if (linea1 != null && !linea1.trim().isEmpty()) {
+                    direccion.setLinea1(linea1.trim());
+                }
+                direccion.setLinea2(linea2 != null ? linea2.trim() : null);
+                if (ciudad != null && !ciudad.trim().isEmpty()) {
+                    direccion.setCiudad(ciudad.trim());
+                }
+                direccion.setProvincia(provincia != null ? provincia.trim() : null);
+                direccion.setCodigoPostal(codigoPostal != null ? codigoPostal.trim() : null);
+                if (pais != null && !pais.trim().isEmpty()) {
+                    direccion.setPais(pais.trim());
+                }
+                direccionRepository.save(direccion);
+            } else if (linea1 != null && !linea1.trim().isEmpty() && 
+                      ciudad != null && !ciudad.trim().isEmpty() && 
+                      pais != null && !pais.trim().isEmpty()) {
+                // Crear nueva dirección si no existe
+                Direccion nuevaDireccion = new Direccion();
+                nuevaDireccion.setUsuarioId(usuario.getId().intValue());
+                nuevaDireccion.setLinea1(linea1.trim());
+                nuevaDireccion.setLinea2(linea2 != null ? linea2.trim() : null);
+                nuevaDireccion.setCiudad(ciudad.trim());
+                nuevaDireccion.setProvincia(provincia != null ? provincia.trim() : null);
+                nuevaDireccion.setCodigoPostal(codigoPostal != null ? codigoPostal.trim() : null);
+                nuevaDireccion.setPais(pais.trim());
+                nuevaDireccion.setNombreContacto(nombre.trim());
+                nuevaDireccion.setEsPrincipal(true);
+                direccionRepository.save(nuevaDireccion);
+            }
+
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "✔ Usuario y dirección actualizados exitosamente");
+            return "redirect:/web/usuarios";
 
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", 
@@ -240,6 +300,7 @@ public class UsuarioWebController {
         }
     }
 
+    // Elimina el usuario por id
     @PostMapping("/{id}/delete")
     public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -247,7 +308,7 @@ public class UsuarioWebController {
             
             if (result.isSuccess()) {
                 redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Usuario eliminado exitosamente");
+                    "✔ Usuario eliminado exitosamente");
             } else {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "⚠ " + result.getMessage());

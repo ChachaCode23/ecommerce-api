@@ -7,6 +7,15 @@
       )}">
 <body>
 <div th:fragment="content">
+    <!-- Mensajes Flash -->
+    <div th:if="${successMessage}" class="alert alert-success" role="alert" style="margin-bottom: 20px;">
+        <strong>✓</strong> <span th:text="${successMessage}"></span>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" style="margin-bottom: 20px;">
+        <strong>⚠</strong> <span th:text="${errorMessage}"></span>
+    </div>
+
     <div class="flex justify-between items-center mb-4">
         <h1 class="card-title">Listado de Usuarios</h1>
         <a th:href="@{/web/usuarios/create}" class="btn btn-primary">

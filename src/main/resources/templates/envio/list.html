@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+          pageTitle='Gestión de Envíos',
+          breadcrumb='Envíos / Listado',
+          contentFragment=~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <!-- Mensajes Flash -->
+    <div th:if="${successMessage}" class="alert alert-success" role="alert" style="margin-bottom: 20px;">
+        <strong>✓</strong> <span th:text="${successMessage}"></span>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" style="margin-bottom: 20px;">
+        <strong>⚠</strong> <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Botón crear -->
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Gestión de Envíos</h3>
+        <a th:href="@{/web/envios/create}" class="btn btn-primary">
+            <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nuevo Envío
+        </a>
+    </div>
+
+    <!-- Tabla de envíos -->
+    <div th:if="${envios != null and !envios.isEmpty()}">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Pedido ID</th>
+                    <th>Tracking</th>
+                    <th>Estado</th>
+                    <th>Fecha Creación</th>
+                    <th style="text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="envio : ${envios}">
+                    <td><strong th:text="'#' + ${envio.id}">#1</strong></td>
+                    <td>
+                        <a th:href="@{/web/pedidos/{id}(id=${envio.pedido.id})}" 
+                           th:text="'Pedido #' + ${envio.pedido.id}"
+                           style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                            Pedido #001
+                        </a>
+                    </td>
+                    <td>
+                        <code th:text="${envio.tracking}" style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 13px;">
+                            TRK123456789
+                        </code>
+                    </td>
+                    <td>
+                        <span th:if="${envio.estado.name() == 'PENDIENTE'}" 
+                              style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #e5e7eb; color: #374151; display: inline-block;">
+                            ⏳ PENDIENTE
+                        </span>
+                        <span th:if="${envio.estado.name() == 'EN_TRANSITO'}" 
+                              style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #dbeafe; color: #1e40af; display: inline-block;">
+                            🚚 EN TRÁNSITO
+                        </span>
+                        <span th:if="${envio.estado.name() == 'EN_CAMINO'}" 
+                              style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #bfdbfe; color: #1e3a8a; display: inline-block;">
+                            📍 EN CAMINO
+                        </span>
+                        <span th:if="${envio.estado.name() == 'ENTREGADO'}" 
+                              style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #d1fae5; color: #065f46; display: inline-block;">
+                            ✅ ENTREGADO
+                        </span>
+                        <span th:if="${envio.estado.name() == 'FALLIDO'}" 
+                              style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #fee2e2; color: #991b1b; display: inline-block;">
+                            ❌ FALLIDO
+                        </span>
+                    </td>
+                    <!-- ✅ CORREGIDO: Usar createdAt con operador ternario -->
+                    <td th:text="${envio.createdAt != null ? #temporals.format(envio.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}" 
+                        style="font-size: 13px;">
+                        17/11/2025 14:30
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <a th:href="@{/web/envios/{id}/edit(id=${envio.id})}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 12px; font-size: 12px;">
+                                Editar
+                            </a>
+                            <form th:action="@{/web/envios/{id}/delete(id=${envio.id})}" 
+                                  method="post" 
+                                  style="margin: 0;"
+                                  onsubmit="return confirm('¿Está seguro de eliminar este envío?');">
+                                <button type="submit" 
+                                        class="btn btn-danger" 
+                                        style="padding: 6px 12px; font-size: 12px;">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mensaje cuando no hay envíos -->
+    <div th:if="${envios == null or envios.isEmpty()}" 
+         style="text-align: center; padding: 60px 20px; color: #6b7280; background: #f9fafb; border-radius: 8px;">
+        <svg style="width: 80px; height: 80px; margin: 0 auto 20px; opacity: 0.4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        <h3 style="font-size: 18px; margin-bottom: 10px; color: #4b5563;">No hay envíos registrados</h3>
+        <p style="margin-bottom: 20px;">Comienza creando tu primer envío</p>
+        <a th:href="@{/web/envios/create}" class="btn btn-primary">Crear Envío</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,6 +1,5 @@
 package com.urbancollection.ecommerce.api.web.dto;
 
-import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
 import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
@@ -30,18 +29,34 @@ public class PedidoMapper {
                         : null
         );
 
-        // Totales: por ahora usamos total como subtotal y 0 para descuento/envío.
-        // Más adelante, si el dominio expone subtotal/descuento/envío separados,
-        // se mapea desde allí.
-        BigDecimal total = pedido.getTotal();
-        dto.setTotal(total);
-        dto.setSubtotal(total);
-        dto.setDescuento(BigDecimal.ZERO);
-        dto.setEnvio(BigDecimal.ZERO);
+        //  Mapea método de pago
+        dto.setMetodoPago(
+                pedido.getMetodoPago() != null
+                        ? pedido.getMetodoPago().name()
+                        : null
+        );
 
-        // Cupón y fecha: se dejan null si aún no los tenemos en la entidad.
-        // dto.setCuponId(...);
-        // dto.setFecha(...);
+        // mapeamos los campos reales de subtotal, descuento, envio
+        dto.setSubtotal(pedido.getSubtotal() != null ? pedido.getSubtotal() : java.math.BigDecimal.ZERO);
+        dto.setDescuento(pedido.getDescuento() != null ? pedido.getDescuento() : java.math.BigDecimal.ZERO);
+        dto.setEnvio(pedido.getEnvio() != null ? pedido.getEnvio() : java.math.BigDecimal.ZERO);
+        dto.setTotal(pedido.getTotal() != null ? pedido.getTotal() : java.math.BigDecimal.ZERO);
+
+        //  Calcula cantidad total de items
+        if (pedido.getItems() != null && !pedido.getItems().isEmpty()) {
+            int cantidadTotal = pedido.getItems().stream()
+                    .mapToInt(item -> item.getCantidad())
+                    .sum();
+            dto.setCantidadTotal(cantidadTotal);
+        } else {
+            dto.setCantidadTotal(0);
+        }
+
+        // Cupón
+        dto.setCuponId(pedido.getCuponId() != null ? pedido.getCuponId().longValue() : null);
+
+        // Fecha 
+        dto.setFecha(null);
 
         // Items
         if (pedido.getItems() != null) {

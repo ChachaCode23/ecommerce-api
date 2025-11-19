@@ -10,31 +10,39 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/direcciones")
+// Aqui se  maneja las direcciones de envío del usuario.
 public class DireccionController {
 
+    // Repositorio para acceder a la tabla de direcciones en la base de datos.
     private final DireccionRepository direccionRepository;
 
+    // Constructor donde Spring inyecta el repositorio.
     public DireccionController(DireccionRepository direccionRepository) {
         this.direccionRepository = direccionRepository;
     }
 
     @GetMapping
+    // Devuelve la lista completa de direcciones registradas.
     public ResponseEntity<List<Direccion>> listar() {
         return ResponseEntity.ok(direccionRepository.findAll());
     }
 
     @PostMapping
+    // Crea una nueva dirección a partir de los datos que vienen en el cuerpo de la petición.
     public ResponseEntity<Direccion> crear(@RequestBody CrearDireccionRequest request) {
+        // Aquí mapeo el DTO simple a la entidad Direccion.
         Direccion direccion = new Direccion();
         direccion.setCalle(request.getCalle());
         direccion.setCiudad(request.getCiudad());
         direccion.setProvincia(request.getProvincia());
         direccion.setCodigoPostal(request.getCodigoPostal());
         
+        // Guardo la dirección en la base de datos y devuelvo la versión guardada.
         Direccion guardada = direccionRepository.save(direccion);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
     }
 
+    // Clase interna que uso como DTO para recibir la información de la dirección desde el cliente.
     public static class CrearDireccionRequest {
         private String calle;
         private String ciudad;

@@ -31,7 +31,6 @@ public class PedidoRepositoryJpaAdapter implements PedidoRepository {
     /**
      * findById:
      * Busca un pedido por id. Devuelve null si no existe.
-     * Marcado como readOnly porque solo consulta.
      */
     @Override
     @Transactional(readOnly = true)

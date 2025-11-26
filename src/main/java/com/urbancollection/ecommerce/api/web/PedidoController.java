@@ -7,7 +7,12 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.urbancollection.ecommerce.api.web.dto.PedidoCreateRequest;
 import com.urbancollection.ecommerce.api.web.dto.PedidoMapper;
@@ -17,6 +22,7 @@ import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
 import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
 import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
+import com.urbancollection.ecommerce.persistence.jpa.spring.PedidoJpaRepository;
 
 import jakarta.validation.Valid;
 
@@ -25,9 +31,11 @@ import jakarta.validation.Valid;
 public class PedidoController {
 
     private final IPedidoService pedidoService;
+    private final PedidoJpaRepository pedidoRepository;
 
-    public PedidoController(IPedidoService pedidoService) {
+    public PedidoController(IPedidoService pedidoService, PedidoJpaRepository pedidoRepository) {
         this.pedidoService = pedidoService;
+        this.pedidoRepository = pedidoRepository;
     }
 
     // =========================
@@ -37,7 +45,7 @@ public class PedidoController {
     @Transactional
     public ResponseEntity<?> crearPedido(@RequestBody @Valid PedidoCreateRequest request) {
 
-        // 1) Mapear items del request a ItemPedido
+        // Mapear items del request a ItemPedido
         List<ItemPedido> items = new ArrayList<>();
 
         if (request.getItems() != null) {
@@ -54,7 +62,7 @@ public class PedidoController {
             }
         }
 
-        // 2) Llamar al servicio
+        //  Llamar al servicio
         OperationResult result = pedidoService.crearPedido(
                 request.getUsuarioId(),
                 request.getDireccionId(),
@@ -62,7 +70,7 @@ public class PedidoController {
                 request.getCuponId()
         );
 
-        // 3) Si falló la regla de negocio → 404 simple
+        // Si falló la regla de negocio → 404 simple
         if (!result.isSuccess()) {
             String msg = result.getMessage() != null ? result.getMessage() : "Error al crear el pedido";
             return ResponseEntity
@@ -70,8 +78,8 @@ public class PedidoController {
                     .body(msg);
         }
 
-        // 4) Tomar el último pedido creado
-        List<Pedido> todos = pedidoService.listarTodos();
+        //  Usarrepository directamente
+        List<Pedido> todos = pedidoRepository.findAll();
         if (todos == null || todos.isEmpty()) {
             return ResponseEntity
                     .internalServerError()
@@ -84,13 +92,14 @@ public class PedidoController {
         return ResponseEntity.ok(response);
     }
 
-    // =========================
+
     // GET /api/pedidos
-    // =========================
+
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<List<PedidoResponse>> listar() {
-        List<Pedido> pedidos = pedidoService.listarTodos();
+       
+        List<Pedido> pedidos = pedidoRepository.findAll();
 
         List<PedidoResponse> responses = pedidos.stream()
                 .map(PedidoMapper::toResponse)
@@ -99,16 +108,17 @@ public class PedidoController {
         return ResponseEntity.ok(responses);
     }
 
-    // =========================
+ 
     // GET /api/pedidos/{id}
-    // =========================
+
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
 
-        Pedido pedido = pedidoService.obtenerPorId(id);
+        //  USA REPOSITORY DIRECTAMENTE: Evita ciclo HTTP que causa deadlock
+        var pedidoOpt = pedidoRepository.findById(id);
 
-        if (pedido == null) {
+        if (pedidoOpt.isEmpty()) {
             Map<String, Object> body = Map.of(
                     "error", "Recurso no encontrado",
                     "details", List.of("No existe un pedido con id " + id)
@@ -116,17 +126,16 @@ public class PedidoController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
         }
 
+        Pedido pedido = pedidoOpt.get();
         PedidoResponse response = PedidoMapper.toResponse(pedido);
         return ResponseEntity.ok(response);
     }
 
     // =========================
     // GET /api/pedidos/test/error500
-    // (solo para la Prueba 15 - Error 500)
-    // =========================
+
     @GetMapping("/test/error500")
     public void forzarError500() {
-        // Fuerza un RuntimeException para que lo capture ApiExceptionHandler
         throw new RuntimeException("Error interno de prueba");
     }
 }

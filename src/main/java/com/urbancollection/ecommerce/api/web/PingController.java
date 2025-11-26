@@ -8,14 +8,13 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * Este controlador es para chequeos rápidos de que la API está viva.
  * No tiene lógica de negocio ni habla con la base de datos.
- *
- * Sirve para dos cosas:
- *  - Ver si el servidor está respondiendo.
- *  - Tener una ruta raíz que te diga que la API levantó bien.
- *
+ *  Veo si el servidor está respondiendo.
+ *  Tiene una ruta raíz que te diga que la API levantó bien.
  */
 @RestController
 public class PingController {
+
+  // Controlador súper simple: solo expone un endpoint para verificar que la API responde.
 
   /**
    * GET /ping
@@ -33,25 +32,9 @@ public class PingController {
    */
   @GetMapping("/ping")
   public String ping() {
+      // Respuesta directa sin pasar por servicios ni nada de lógica de negocio.
       return "pong";
   }
 
-  /**
-   * GET /
-   *
-   * Esta es la ruta raíz de la API.
-   * Devuelve un mensaje corto diciendo "API online".
-   *
-   *
-   * Esto ayuda:
-   *   cuando abres el navegador sin ruta, ves que el backend sí levantó.
-   *   también lo puedes usar como healthcheck súper básico en desarrollo.
-   *
-
-   */
-  @GetMapping("/")
-  public String root() {
-      return "API online";
-  }
 
 }

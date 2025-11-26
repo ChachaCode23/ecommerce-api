@@ -81,17 +81,17 @@
             </h4>
             <div style="display: flex; align-items: center; gap: 12px;">
                 <!-- Icono según método de pago -->
-                <span th:if="${pedido.metodoPago == 'TARJETA'}" style="font-size: 32px;">💳</span>
-                <span th:if="${pedido.metodoPago == 'PAYPAL'}" style="font-size: 32px;">🅿️</span>
-                <span th:if="${pedido.metodoPago == 'TRANSFERENCIA'}" style="font-size: 32px;">🏦</span>
+                <span th:if="${pedido.metodoPago.name() == 'TARJETA'}" style="font-size: 32px;">💳</span>
+                <span th:if="${pedido.metodoPago.name() == 'PAYPAL'}" style="font-size: 32px;">🅿️</span>
+                <span th:if="${pedido.metodoPago.name() == 'TRANSFERENCIA'}" style="font-size: 32px;">🏦</span>
                 
                 <!-- Texto del método -->
                 <div>
                     <span style="color: #60a5fa; font-size: 13px;">Pagado con:</span>
                     <strong style="display: block; font-size: 16px; color: #1e40af;">
-                        <span th:if="${pedido.metodoPago == 'TARJETA'}">Tarjeta de Crédito/Débito</span>
-                        <span th:if="${pedido.metodoPago == 'PAYPAL'}">PayPal</span>
-                        <span th:if="${pedido.metodoPago == 'TRANSFERENCIA'}">Transferencia Bancaria</span>
+                        <span th:if="${pedido.metodoPago.name() == 'TARJETA'}">Tarjeta de Crédito/Débito</span>
+                        <span th:if="${pedido.metodoPago.name() == 'PAYPAL'}">PayPal</span>
+                        <span th:if="${pedido.metodoPago.name() == 'TRANSFERENCIA'}">Transferencia Bancaria</span>
                     </strong>
                 </div>
             </div>

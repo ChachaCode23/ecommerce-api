@@ -16,4 +16,9 @@ public interface UsuarioJpaRepository extends JpaRepository<Usuario, Long> {
 
     @Query("SELECT u FROM Usuario u WHERE UPPER(u.correo) = UPPER(:correo)")
     Optional<Usuario> findByCorreoIgnoreCase(@Param("correo") String correo);
+    
+    // ✅ Alias para compatibilidad con WebControllers
+    default Optional<Usuario> findByEmail(String email) {
+        return findByCorreoIgnoreCase(email);
+    }
 }

@@ -28,12 +28,13 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Dirección</th>
-                        <th>Estado</th>
-                        <th>Cantidad</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
+                        <th>USUARIO</th>
+                        <th>DIRECCIÓN</th>
+                        <th>ESTADO</th>
+                        <th>MÉTODO PAGO</th>
+                        <th>CANTIDAD</th>
+                        <th>TOTAL</th>
+                        <th>ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,20 +42,21 @@
                         <td>
                             <strong th:text="'#' + ${pedido.id}">#001</strong>
                         </td>
-                        <td th:text="${pedido.usuarioId != null ? 'Usuario ' + pedido.usuarioId : 'N/A'}">Usuario 1</td>
-                        <td th:text="${pedido.direccionId != null ? 'Dirección ' + pedido.direccionId : 'N/A'}">Dirección 1</td>
+                        <td th:text="${pedido.usuario != null ? pedido.usuario.nombre : 'N/A'}">Usuario 1</td>
+                        <td th:text="${pedido.direccionEnvioId != null ? 'Dirección ' + pedido.direccionEnvioId : 'N/A'}">Dirección 1</td>
                         <td>
                             <span th:text="${pedido.estado}" 
                                   style="padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block;"
-                                  th:style="${pedido.estado == 'PAGADO' ? 'background: #d1fae5; color: #065f46;' : 
-                                             pedido.estado == 'COMPLETADO' ? 'background: #a7f3d0; color: #047857;' :
-                                             pedido.estado == 'PENDIENTE_PAGO' ? 'background: #fef3c7; color: #92400e;' : 
-                                             pedido.estado == 'ENVIADO' ? 'background: #dbeafe; color: #1e40af;' :
-                                             pedido.estado == 'CANCELADO' ? 'background: #fee2e2; color: #991b1b;' :
-                                             'background: #e5e7eb; color: #374151;'}">
+                                  th:style="${pedido.estado.name() == 'COMPLETADO' ? 'background: #10b981; color: #ffffff;' : 
+                                             pedido.estado.name() == 'ENVIADO' ? 'background: #3b82f6; color: #ffffff;' :
+                                             pedido.estado.name() == 'PENDIENTE_PAGO' ? 'background: #f59e0b; color: #ffffff;' : 
+                                             pedido.estado.name() == 'PAGADO' ? 'background: #10b981; color: #ffffff;' :
+                                             pedido.estado.name() == 'CANCELADO' ? 'background: #ef4444; color: #ffffff;' :
+                                             'background: #6b7280; color: #ffffff;'}">
                                 Estado
                             </span>
                         </td>
+                        <td th:text="${pedido.metodoPago != null ? pedido.metodoPago : 'N/A'}">N/A</td>
                         <td style="text-align: center;">
                             <strong th:text="${pedido.cantidadTotal != null ? pedido.cantidadTotal + ' items' : '0 items'}">0 items</strong>
                         </td>

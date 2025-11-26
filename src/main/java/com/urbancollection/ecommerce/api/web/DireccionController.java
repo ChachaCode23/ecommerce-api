@@ -1,53 +1,72 @@
 package com.urbancollection.ecommerce.api.web;
 
+import com.urbancollection.ecommerce.application.service.IDireccionService;
+import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.logistica.Direccion;
-import com.urbancollection.ecommerce.domain.repository.DireccionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api/direcciones")
-// Aqui se  maneja las direcciones de envío del usuario.
 public class DireccionController {
 
-    // Repositorio para acceder a la tabla de direcciones en la base de datos.
-    private final DireccionRepository direccionRepository;
+    // Servicio de direcciones de la capa de aplicación.
+    // Aquí va la lógica de negocio, el controlador solo "orquesta" la llamada.
+    private final IDireccionService direccionService;
 
-    // Constructor donde Spring inyecta el repositorio.
-    public DireccionController(DireccionRepository direccionRepository) {
-        this.direccionRepository = direccionRepository;
+    // Constructor donde Spring inyecta el servicio de direcciones.
+    public DireccionController(IDireccionService direccionService) {
+        this.direccionService = direccionService;
     }
 
+    // ================== GET /api/direcciones ==================
+    // Endpoint para listar todas las direcciones.
     @GetMapping
-    // Devuelve la lista completa de direcciones registradas.
     public ResponseEntity<List<Direccion>> listar() {
-        return ResponseEntity.ok(direccionRepository.findAll());
+        // Le pedimos al servicio la lista de direcciones.
+        List<Direccion> direcciones = direccionService.listar();
+        // Devolvemos la lista con estado 200 OK.
+        return ResponseEntity.ok(direcciones);
     }
 
+    // ================== POST /api/direcciones ==================
+    // Endpoint para crear una nueva dirección.
     @PostMapping
-    // Crea una nueva dirección a partir de los datos que vienen en el cuerpo de la petición.
     public ResponseEntity<Direccion> crear(@RequestBody CrearDireccionRequest request) {
-        // Aquí mapeo el DTO simple a la entidad Direccion.
+        // Creamos una entidad Direccion a partir de los datos que vienen en el body (DTO).
         Direccion direccion = new Direccion();
         direccion.setCalle(request.getCalle());
         direccion.setCiudad(request.getCiudad());
         direccion.setProvincia(request.getProvincia());
         direccion.setCodigoPostal(request.getCodigoPostal());
         
-        // Guardo la dirección en la base de datos y devuelvo la versión guardada.
-        Direccion guardada = direccionRepository.save(direccion);
-        return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
+        // Llamamos al servicio para que ejecute la lógica de creación.
+        OperationResult result = direccionService.crear(direccion);
+        
+        // Si la operación falla según la lógica de negocio, devolvemos 400 Bad Request.
+        if (!result.isSuccess()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Si todo sale bien, devolvemos 201 Created con la dirección creada en el body.
+        return ResponseEntity.status(HttpStatus.CREATED).body(direccion);
     }
 
-    // Clase interna que uso como DTO para recibir la información de la dirección desde el cliente.
+    // ================== DTO ==================
+    // Esta clase interna funciona como DTO de entrada para el endpoint POST.
+    // Representa el JSON que el cliente envía en la petición.
     public static class CrearDireccionRequest {
+        // Campos simples que vienen del cliente.
         private String calle;
         private String ciudad;
         private String provincia;
         private String codigoPostal;
+
+        // Getters y setters para que Spring pueda mapear el JSON a este objeto.
 
         public String getCalle() {
             return calle;

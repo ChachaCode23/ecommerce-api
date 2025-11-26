@@ -1,297 +1,392 @@
 package com.urbancollection.ecommerce.api.web;
 
-import com.urbancollection.ecommerce.api.web.dto.PedidoMapper;
-import com.urbancollection.ecommerce.api.web.dto.PedidoResponse;
-import com.urbancollection.ecommerce.application.service.IPedidoService;
-import com.urbancollection.ecommerce.application.service.IProductoService;
-import com.urbancollection.ecommerce.application.service.IUsuarioService;
-import com.urbancollection.ecommerce.domain.base.OperationResult;
-import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
-import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
-import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
-import com.urbancollection.ecommerce.domain.repository.DireccionRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import com.urbancollection.ecommerce.domain.entity.catalogo.Cupon;
+import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
+import com.urbancollection.ecommerce.domain.entity.usuarios.Usuario;
+import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
+import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
+import com.urbancollection.ecommerce.domain.enums.EstadoDePedido;
+import com.urbancollection.ecommerce.domain.enums.MetodoDePago; // 👈 CORRECCIÓN: Nueva Importación
+import com.urbancollection.ecommerce.persistence.jpa.spring.CuponJpaRepository;
+import com.urbancollection.ecommerce.persistence.jpa.spring.PedidoJpaRepository;
+import com.urbancollection.ecommerce.persistence.jpa.spring.ProductoJpaRepository;
+import com.urbancollection.ecommerce.persistence.jpa.spring.UsuarioJpaRepository;
 
+// Controlador web para manejar los pedidos desde la interfaz 
 @Controller
+@RequestMapping("/web/pedidos")
 public class PedidoWebController {
 
-    private final IPedidoService pedidoService;
-    private final IProductoService productoService;
-    private final IUsuarioService usuarioService;
-    private final DireccionRepository direccionRepository;
+    // Repositorio para acceder y manejar los pedidos en la base de datos.
+    private final PedidoJpaRepository pedidoRepository;
+    // Repositorio para consultar los usuarios que pueden hacer pedidos.
+    private final UsuarioJpaRepository usuarioRepository;
+    // Repositorio para obtener los productos que se agregan al pedido.
+    private final ProductoJpaRepository productoRepository;
+    // Repositorio para consultar y aplicar cupones de descuento.
+    private final CuponJpaRepository cuponRepository;
 
-    public PedidoWebController(IPedidoService pedidoService,
-                               IProductoService productoService,
-                               IUsuarioService usuarioService,
-                               DireccionRepository direccionRepository) {
-        this.pedidoService = pedidoService;
-        this.productoService = productoService;
-        this.usuarioService = usuarioService;
-        this.direccionRepository = direccionRepository;
+    // Constructor donde Spring inyecta todos los repositorios necesarios.
+    public PedidoWebController(
+            PedidoJpaRepository pedidoRepository,
+            UsuarioJpaRepository usuarioRepository,
+            ProductoJpaRepository productoRepository,
+            CuponJpaRepository cuponRepository) {
+        this.pedidoRepository = pedidoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.productoRepository = productoRepository;
+        this.cuponRepository = cuponRepository;
     }
 
-    // =========================
-    // LISTADO /web/pedidos
-    // =========================
-    @GetMapping("/web/pedidos")
-    public String listar(Model model,
-                        @RequestParam(value = "success", required = false) String successMessage) {
+    // Acción GET para mostrar el listado de todos los pedidos.
+    @GetMapping
+    public String listar(Model model) {
         try {
-            List<Pedido> pedidos = pedidoService.listarTodos();
-            List<PedidoResponse> responses = pedidos.stream()
-                    .map(PedidoMapper::toResponse)
-                    .toList();
-
-            model.addAttribute("pedidos", responses);
-            
-            if (successMessage != null && !successMessage.isEmpty()) {
-                model.addAttribute("successMessage", successMessage);
-            }
-            
+            // Busco todos los pedidos en la base de datos.
+            List<Pedido> pedidos = pedidoRepository.findAll();
+            // Los agrego al modelo para que la vista los muestre.
+            model.addAttribute("pedidos", pedidos);
             return "pedido/list";
-
         } catch (Exception e) {
-            model.addAttribute("errorMessage", "Error al cargar los pedidos: " + e.getMessage());
-            model.addAttribute("pedidos", new ArrayList<>());
+            // Si ocurre un error, lo muestro en la vista.
+            model.addAttribute("errorMessage", "⚠ Error al cargar los pedidos: " + e.getMessage());
             return "pedido/list";
         }
     }
 
-    // =========================
-    // DETALLE /web/pedidos/{id}
-    // =========================
-    @GetMapping("/web/pedidos/{id}")
-    public String detalle(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    // Acción GET para mostrar el formulario de creación de un nuevo pedido.
+    @GetMapping("/create")
+    public String mostrarFormularioCrear(Model model) {
         try {
-            Pedido pedido = pedidoService.obtenerPorId(id);
+            // Cargo todos los usuarios, productos y cupones para llenar los combos del formulario.
+            List<Usuario> usuarios = usuarioRepository.findAll();
+            List<Producto> productos = productoRepository.findAll();
+            List<Cupon> cupones = cuponRepository.findAll();
+
+            // Agrego las listas al modelo para que el formulario las use.
+            model.addAttribute("usuarios", usuarios);
+            model.addAttribute("productos", productos);
+            model.addAttribute("cupones", cupones);
+            // Valores por defecto en el formulario.
+            model.addAttribute("usuarioId", "");
+            model.addAttribute("cuponId", "");
+            return "pedido/create";
+        } catch (Exception e) {
+            // Si falla la carga de datos, redirijo al listado de pedidos con error.
+            model.addAttribute("errorMessage", "⚠ Error al cargar el formulario: " + e.getMessage());
+            return "redirect:/web/pedidos";
+        }
+    }
+
+    // Acción POST que recibe los datos del formulario y crea el pedido.
+    @PostMapping("/create")
+    public String crear(
+            @RequestParam(value = "usuarioId", required = false) Long usuarioId,
+            @RequestParam(value = "cuponId", required = false) Long cuponId,
+            @RequestParam(value = "productosIds", required = false) List<Long> productosIds,
+            @RequestParam(value = "cantidades", required = false) List<Integer> cantidades,
+            @RequestParam(value = "metodoPago", required = false) String metodoPago,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+
+        // Validación: el usuario es obligatorio.
+        if (usuarioId == null) {
+            return mostrarError(model, "El usuario es obligatorio", usuarioId, cuponId);
+        }
+
+        // Validación: el método de pago también es obligatorio.
+        if (metodoPago == null || metodoPago.trim().isEmpty()) {
+            return mostrarError(model, "El método de pago es obligatorio", usuarioId, cuponId);
+        }
+
+        // Validación: debe haber al menos un producto seleccionado.
+        if (productosIds == null || productosIds.isEmpty()) {
+            return mostrarError(model, "Debe seleccionar al menos un producto", usuarioId, cuponId);
+        }
+
+        // Validación: la lista de cantidades debe coincidir con la de productos.
+        if (cantidades == null || cantidades.size() != productosIds.size()) {
+            return mostrarError(model, "Las cantidades no coinciden con los productos", usuarioId, cuponId);
+        }
+
+        try {
+            // Busco el usuario que hace el pedido.
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(usuarioId);
+            if (!usuarioOpt.isPresent()) {
+                return mostrarError(model, "Usuario no encontrado", usuarioId, cuponId);
+            }
+
+            Usuario usuario = usuarioOpt.get();
+            // Creo una instancia de Pedido para ir llenándola.
+            Pedido pedido = new Pedido();
+            pedido.setUsuario(usuario);
             
-            if (pedido == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "⚠ Pedido no encontrado");
+            // Si se selecciona método de pago, el pedido se considera pagado.
+            pedido.setEstado(EstadoDePedido.PAGADO);
+
+            // Intento convertir el String del método de pago al enum correspondiente.
+            try {
+                MetodoDePago metodo = MetodoDePago.valueOf(metodoPago.toUpperCase());
+                pedido.setMetodoPago(metodo);
+            } catch (IllegalArgumentException e) {
+                // Si el valor no coincide con el enum, es un método de pago inválido.
+                return mostrarError(model, "Método de pago inválido", usuarioId, cuponId);
+            }
+
+            // Si el usuario seleccionó un cupón, lo busco y lo asigno al pedido.
+            if (cuponId != null) {
+                Optional<Cupon> cuponOpt = cuponRepository.findById(cuponId);
+                cuponOpt.ifPresent(pedido::setCupon);
+            }
+
+            // Empiezo con subtotal en cero y lo iré sumando según los productos.
+            BigDecimal subtotal = BigDecimal.ZERO;
+            // Recorro todos los productos seleccionados.
+            for (int i = 0; i < productosIds.size(); i++) {
+                Long productoId = productosIds.get(i);
+                Integer cantidad = cantidades.get(i);
+
+                // Si la cantidad no es válida, simplemente la ignoro.
+                if (cantidad == null || cantidad <= 0) continue;
+
+                // Busco el producto en base de datos.
+                Optional<Producto> productoOpt = productoRepository.findById(productoId);
+                if (!productoOpt.isPresent()) continue;
+
+                Producto producto = productoOpt.get();
+
+                // Valido que haya suficiente stock para la cantidad pedida.
+                if (producto.getStock() < cantidad) {
+                    return mostrarError(model, 
+                        "Stock insuficiente para " + producto.getNombre() + 
+                        " (disponible: " + producto.getStock() + ")", 
+                        usuarioId, cuponId);
+                }
+
+                // Creo el item del pedido 
+                ItemPedido item = new ItemPedido();
+                item.setPedido(pedido);
+                item.setProducto(producto);
+                item.setCantidad(cantidad);
+                item.setPrecioUnitario(producto.getPrecio());
+
+                // Agrego el item a la lista de items del pedido.
+                pedido.agregarItem(item);
+                // Actualizo el subtotal sumando cantidad * precio.
+                subtotal = subtotal.add(producto.getPrecio().multiply(new BigDecimal(cantidad)));
+            }
+
+            // Si no se agregó ningún item válido, no tiene sentido crear el pedido.
+            if (pedido.getItems().isEmpty()) {
+                return mostrarError(model, "No se agregaron productos válidos al pedido", usuarioId, cuponId);
+            }
+
+            // Asigno el subtotal calculado.
+            pedido.setSubtotal(subtotal);
+            // Variable para ir calculando el descuento final.
+            BigDecimal descuento = BigDecimal.ZERO;
+
+            // Si el pedido tiene cupón, calculo el descuento correspondiente.
+            if (pedido.getCupon() != null) {
+                Cupon cupon = pedido.getCupon();
+                if (cupon.isActivo()) {
+                    // Dependiendo del tipo de cupón, calculo el descuento.
+                    switch (cupon.getTipo()) {
+                        case PORCENTAJE:
+                            // Descuento = subtotal * porcentaje / 100, redondeando a 2 decimales.
+                            descuento = subtotal.multiply(cupon.getValorDescuento())
+                                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                            // Si hay un tope de descuento, lo respeto.
+                            if (cupon.getTopeDescuento() != null && descuento.compareTo(cupon.getTopeDescuento()) > 0) {
+                                descuento = cupon.getTopeDescuento();
+                            }
+                            break;
+                        case MONTO_FIJO:
+                            // En monto fijo, el descuento es un valor fijo.
+                            descuento = cupon.getValorDescuento();
+                            // Pero nunca puede ser mayor que el subtotal.
+                            if (descuento.compareTo(subtotal) > 0) {
+                                descuento = subtotal;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            // Asigno el descuento calculado.
+            pedido.setDescuento(descuento);
+            // Total = subtotal - descuento.
+            pedido.setTotal(subtotal.subtract(descuento));
+
+            // Guardo el pedido en la base de datos.
+            pedidoRepository.save(pedido);
+
+            // Actualizo el stock de cada producto según las cantidades vendidas.
+            for (ItemPedido item : pedido.getItems()) {
+                Producto producto = item.getProducto();
+                producto.setStock(producto.getStock() - item.getCantidad());
+                productoRepository.save(producto);
+            }
+
+            // Mensaje de éxito al crear el pedido.
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "✓ Pedido creado exitosamente");
+            return "redirect:/web/pedidos";
+
+        } catch (Exception e) {
+            // Si algo falla en cualquier parte del proceso, muestro el error.
+            return mostrarError(model, "Error al crear el pedido: " + e.getMessage(), 
+                              usuarioId, cuponId);
+        }
+    }
+
+    // Acción GET para ver el detalle de un pedido específico.
+    @GetMapping("/{id}")
+    public String ver(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            // Busco el pedido por su id.
+            Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);
+            
+            // Si no existe, redirijo al listado con mensaje de error.
+            if (!pedidoOpt.isPresent()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠ Pedido no encontrado");
                 return "redirect:/web/pedidos";
             }
 
-            PedidoResponse response = PedidoMapper.toResponse(pedido);
-            model.addAttribute("pedido", response);
+            // Si existe, lo agrego al modelo para que la vista muestre el detalle.
+            model.addAttribute("pedido", pedidoOpt.get());
             return "pedido/detail";
 
         } catch (Exception e) {
+            // Manejo de errores al cargar el detalle.
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "⚠ Error al cargar el pedido: " + e.getMessage());
             return "redirect:/web/pedidos";
         }
     }
 
-    // =========================
-    // MARCAR COMO PAGADO POST /web/pedidos/{id}/marcar-pagado
-    // =========================
-    @PostMapping("/web/pedidos/{id}/marcar-pagado")
-    public String marcarComoPagado(@PathVariable Long id,
-                                    @RequestParam(value = "metodoPago", required = false) String metodoPago,
-                                    RedirectAttributes redirectAttributes) {
+    // Acción POST para cambiar el estado de un pedido.
+    @PostMapping("/{id}/estado")
+    public String cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam(value = "estado", required = false) String estado,
+            RedirectAttributes redirectAttributes) {
+
         try {
-            // Validar que se haya seleccionado un método de pago
-            if (metodoPago == null || metodoPago.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "⚠ Debe seleccionar un método de pago");
-                return "redirect:/web/pedidos/" + id;
-            }
-
-            OperationResult result = pedidoService.marcarComoPagado(id);
+            // Busco el pedido en la base de datos.
+            Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);
             
-            if (result.isSuccess()) {
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Pedido marcado como PAGADO (Método: " + metodoPago + ")");
-            } else {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "⚠ " + result.getMessage());
-            }
-            
-            return "redirect:/web/pedidos/" + id;
-
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "⚠ Error al marcar el pedido como pagado: " + e.getMessage());
-            return "redirect:/web/pedidos/" + id;
-        }
-    }
-
-    // =========================
-    // NUEVO: ELIMINAR POST /web/pedidos/{id}/delete
-    // =========================
-    @PostMapping("/web/pedidos/{id}/delete")
-    public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            Pedido pedido = pedidoService.obtenerPorId(id);
-            
-            if (pedido == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "⚠ Pedido no encontrado");
+            // Si no existe, aviso y redirijo.
+            if (!pedidoOpt.isPresent()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠ Pedido no encontrado");
                 return "redirect:/web/pedidos";
             }
 
-            // Aquí deberías tener un método en el servicio para eliminar
-            // Por ahora, asumimos que existe o lo agregaremos
-            // pedidoService.eliminar(id);
+            Pedido pedido = pedidoOpt.get();
+
+            // Valido que se haya enviado un estado.
+            if (estado == null || estado.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠ El estado es obligatorio");
+                return "redirect:/web/pedidos/" + id;
+            }
+
+            try {
+                // Intento convertir el String a enum de EstadoDePedido.
+                EstadoDePedido nuevoEstado = EstadoDePedido.valueOf(estado);
+                pedido.setEstado(nuevoEstado);
+                // Guardo el nuevo estado del pedido.
+                pedidoRepository.save(pedido);
+
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "✓ Estado del pedido actualizado exitosamente");
+            } catch (IllegalArgumentException e) {
+                // Si el estado no coincide con el enum, es inválido.
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "⚠ Estado de pedido inválido: " + estado);
+            }
+
+            return "redirect:/web/pedidos/" + id;
+
+        } catch (Exception e) {
+            // Manejo de errores en el cambio de estado.
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "⚠ Error al cambiar el estado: " + e.getMessage());
+            return "redirect:/web/pedidos";
+        }
+    }
+
+    // Acción POST para eliminar un pedido por su id.
+    @PostMapping("/{id}/delete")
+    public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            // Busco el pedido antes de eliminarlo.
+            Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);
             
+            // Si no existe, envío mensaje de error.
+            if (!pedidoOpt.isPresent()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠ Pedido no encontrado");
+                return "redirect:/web/pedidos";
+            }
+
+            Pedido pedido = pedidoOpt.get();
+
+            // Antes de borrar el pedido, devuelvo el stock de los productos.
+            for (ItemPedido item : pedido.getItems()) {
+                Producto producto = item.getProducto();
+                producto.setStock(producto.getStock() + item.getCantidad());
+                productoRepository.save(producto);
+            }
+
+            // Ahora sí elimino el pedido.
+            pedidoRepository.deleteById(id);
+
             redirectAttributes.addFlashAttribute("successMessage", 
                 "✓ Pedido eliminado exitosamente");
             return "redirect:/web/pedidos";
 
         } catch (Exception e) {
+            // Manejo de errores al eliminar.
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "⚠ Error al eliminar el pedido: " + e.getMessage());
             return "redirect:/web/pedidos";
         }
     }
 
-    // =========================
-    // FORMULARIO GET /web/pedidos/create
-    // =========================
-    @GetMapping("/web/pedidos/create")
-    public String mostrarFormularioCrear(Model model) {
-        model.addAttribute("usuarioId", "");
-        model.addAttribute("direccionId", "");
-        model.addAttribute("productoId", "");
-        model.addAttribute("cantidad", "");
-        model.addAttribute("cuponId", "");
-        
-        return "pedido/create";
-    }
-
-    // =========================
-    // GUARDAR POST /web/pedidos/create
-    // =========================
-    @PostMapping("/web/pedidos/create")
-    public String crearPedido(
-            @RequestParam(value = "usuarioId", required = false) Long usuarioId,
-            @RequestParam(value = "direccionId", required = false) Long direccionId,
-            @RequestParam(value = "cuponId", required = false) Long cuponId,
-            @RequestParam(value = "productoId", required = false) Long productoId,
-            @RequestParam(value = "cantidad", required = false) Integer cantidad,
-            Model model,
-            RedirectAttributes redirectAttributes) {
-
-        // Validaciones
-        if (usuarioId == null) {
-            return mostrarErrorFormulario(model, "El ID de usuario es obligatorio", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (direccionId == null) {
-            return mostrarErrorFormulario(model, "El ID de dirección es obligatorio", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (productoId == null) {
-            return mostrarErrorFormulario(model, "El ID de producto es obligatorio", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (cantidad == null) {
-            return mostrarErrorFormulario(model, "La cantidad es obligatoria", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (usuarioId <= 0) {
-            return mostrarErrorFormulario(model, "El ID de usuario debe ser mayor a 0", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (direccionId <= 0) {
-            return mostrarErrorFormulario(model, "El ID de dirección debe ser mayor a 0", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (productoId <= 0) {
-            return mostrarErrorFormulario(model, "El ID de producto debe ser mayor a 0", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (cantidad <= 0) {
-            return mostrarErrorFormulario(model, "La cantidad debe ser mayor a 0", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (cantidad > 999) {
-            return mostrarErrorFormulario(model, "La cantidad no puede exceder 999 unidades", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (cuponId != null && cuponId <= 0) {
-            return mostrarErrorFormulario(model, "El ID de cupón debe ser mayor a 0 o dejarlo vacío", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (!usuarioService.buscarPorId(usuarioId).isPresent()) {
-            return mostrarErrorFormulario(model, "El usuario con ID " + usuarioId + " no existe", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (direccionRepository.findById(direccionId) == null) {
-            return mostrarErrorFormulario(model, "La dirección con ID " + direccionId + " no existe", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
-
-        if (!productoService.buscarPorId(productoId).isPresent()) {
-            return mostrarErrorFormulario(model, "El producto con ID " + productoId + " no existe", 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
-        }
+    // Método privado de ayuda para centralizar el manejo de errores en la creación.
+    private String mostrarError(Model model, String mensaje, Long usuarioId, Long cuponId) {
+        // Agrego el mensaje de error al modelo.
+        model.addAttribute("errorMessage", mensaje);
+        // Mantengo los valores seleccionados para que el usuario no tenga que reingresarlos.
+        model.addAttribute("usuarioId", usuarioId);
+        model.addAttribute("cuponId", cuponId);
 
         try {
-            List<ItemPedido> items = new ArrayList<>();
-
-            ItemPedido item = new ItemPedido();
-            Producto producto = new Producto();
-            producto.setId(productoId);
-            item.setProducto(producto);
-            item.setCantidad(cantidad);
-            item.setPrecioUnitario(BigDecimal.valueOf(100));
-
-            items.add(item);
-
-            OperationResult result = pedidoService.crearPedido(
-                    usuarioId,
-                    direccionId,
-                    items,
-                    cuponId
-            );
-
-            if (result.isSuccess()) {
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "✓ Pedido creado exitosamente. " + result.getMessage());
-                return "redirect:/web/pedidos";
-            } else {
-                return mostrarErrorFormulario(model, result.getMessage(), 
-                                             usuarioId, direccionId, cuponId, productoId, cantidad);
-            }
-
+            // Intento recargar las listas para que el formulario se pueda volver a mostrar.
+            model.addAttribute("usuarios", usuarioRepository.findAll());
+            model.addAttribute("productos", productoRepository.findAll());
+            model.addAttribute("cupones", cuponRepository.findAll());
         } catch (Exception e) {
-            return mostrarErrorFormulario(model, "Error al crear el pedido: " + e.getMessage(), 
-                                         usuarioId, direccionId, cuponId, productoId, cantidad);
+            // Si algo falla al cargar las listas, las dejo vacías para evitar errores.
+            model.addAttribute("usuarios", List.of());
+            model.addAttribute("productos", List.of());
+            model.addAttribute("cupones", List.of());
         }
-    }
 
-    private String mostrarErrorFormulario(Model model, String mensajeError,
-                                         Long usuarioId, Long direccionId, Long cuponId,
-                                         Long productoId, Integer cantidad) {
-        model.addAttribute("errorMessage", mensajeError);
-        model.addAttribute("usuarioId", usuarioId);
-        model.addAttribute("direccionId", direccionId);
-        model.addAttribute("cuponId", cuponId);
-        model.addAttribute("productoId", productoId);
-        model.addAttribute("cantidad", cantidad);
-        
+        // Siempre regreso a la vista de creación de pedido.
         return "pedido/create";
     }
 }

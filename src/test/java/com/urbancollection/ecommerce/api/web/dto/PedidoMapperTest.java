@@ -6,10 +6,16 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
 
+import com.urbancollection.ecommerce.domain.entity.catalogo.Cupon;
 import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
 import com.urbancollection.ecommerce.domain.entity.ventas.ItemPedido;
 import com.urbancollection.ecommerce.domain.entity.ventas.Pedido;
 
+/**
+ * ✅ ACTUALIZADO PARA NUEVA ARQUITECTURA:
+ * - Pedido.getCuponId() ahora retorna Integer desde Cupon (no directamente)
+ * - Tests adaptados a la nueva implementación
+ */
 class PedidoMapperTest {
 
     @Test
@@ -37,8 +43,10 @@ class PedidoMapperTest {
         pedido.setEnvio(envio);
         pedido.setTotal(total);
 
-        // Cupón
-        pedido.setCuponId(123);
+        // Cupón - ahora es un objeto Cupon, no Integer
+        Cupon cupon = new Cupon();
+        cupon.setId(123L);
+        pedido.setCupon(cupon);
 
         // Producto base para los items
         Producto producto = new Producto();
@@ -81,7 +89,7 @@ class PedidoMapperTest {
         // Cantidad total de items = 2 + 3 = 5
         assertEquals(5, dto.getCantidadTotal());
 
-        // Cupón convertido de Integer a Long
+        // Cupón convertido de Integer a Long (getCuponId() retorna Integer de Cupon.getId())
         assertEquals(123L, dto.getCuponId());
 
         // Fecha la deja en null por ahora
@@ -120,7 +128,7 @@ class PedidoMapperTest {
         // Sin items → cantidadTotal = 0
         assertEquals(0, dto.getCantidadTotal());
 
-        // Sin cupón → cuponId = null
+        // Sin cupón → cuponId = null (getCuponId() retorna null cuando no hay cupon)
         assertNull(dto.getCuponId());
     }
 }

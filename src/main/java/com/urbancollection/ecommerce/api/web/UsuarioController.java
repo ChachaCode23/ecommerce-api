@@ -1,58 +1,72 @@
 package com.urbancollection.ecommerce.api.web;
 
+import com.urbancollection.ecommerce.application.service.IUsuarioService;
+import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.usuarios.Usuario;
-import com.urbancollection.ecommerce.domain.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
+// Controlador REST para manejar usuarios en la API 
 @RestController
 @RequestMapping("/api/usuarios")
-// aqui expongo la API de usuarios.
 public class UsuarioController {
 
-    // Repositorio para acceder a la tabla de usuarios en la base de datos.
-    private final UsuarioRepository usuarioRepository;
+    // Servicio de usuarios de la capa de aplicación.
+    // Aquí va la lógica de negocio, el controlador solo recibe y responde HTTP.
+    private final IUsuarioService usuarioService; 
 
-    // Constructor donde Spring inyecta el repositorio.
-    public UsuarioController(UsuarioRepository usuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
+    // Constructor donde Spring inyecta la implementación de IUsuarioService.
+    public UsuarioController(IUsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
     }
 
+    // ================== GET /api/usuarios ==================
+    // Endpoint para listar todos los usuarios registrados.
     @GetMapping
-    // Devuelve la lista completa de usuarios registrados.
     public ResponseEntity<List<Usuario>> listar() {
-        List<Usuario> usuarios = usuarioRepository.findAll();
+        // Le pedimos al servicio la lista de usuarios.
+        List<Usuario> usuarios = usuarioService.listar();
+        // Devolvemos la lista con código 200 OK.
         return ResponseEntity.ok(usuarios);
     }
 
+    // ================== POST /api/usuarios ==================
+    // Endpoint para crear un nuevo usuario a partir de un JSON en el body.
     @PostMapping
-    // Crea un nuevo usuario a partir del JSON que llega en el cuerpo de la petición.
     public ResponseEntity<Usuario> crear(@RequestBody CrearUsuarioRequest request) {
-        // Aquí mapeo el DTO simple a la entidad Usuario.
+        // Creamos una entidad Usuario usando los datos que vienen en el request (DTO).
         Usuario usuario = new Usuario();
         usuario.setNombre(request.getNombre());
         usuario.setCorreo(request.getCorreo());
         usuario.setContrasena(request.getContrasena());
         usuario.setRol(request.getRol());
 
-        // Guardo el usuario en la base de datos.
-        Usuario guardado = usuarioRepository.save(usuario);
+        // Llamamos al servicio para que intente crear el usuario y aplique las validaciones de negocio.
+        OperationResult result = usuarioService.crear(usuario);
+        
+        // Si la operación no fue exitosa, devolvemos 400 Bad Request.
+        if (!result.isSuccess()) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        // Respondo con 201 Created y el usuario que se acaba de guardar.
-        return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+        // Si todo salió bien, devolvemos 201 Created con el usuario creado en el body.
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
     }
 
-    // Clase interna que uso como DTO para recibir los datos del usuario desde el cliente.
+    // ================== DTO ==================
+    // Clase interna que funciona como DTO para recibir el JSON de creación de usuario.
     public static class CrearUsuarioRequest {
+        // Campos que esperamos en el JSON del cliente.
         private String nombre;
         private String correo;
         private String contrasena;
         private String rol;
 
-        // Getters y setters del DTO
+        // Getters y setters para que Spring pueda mapear el JSON a este objeto.
 
         public String getNombre() {
             return nombre;

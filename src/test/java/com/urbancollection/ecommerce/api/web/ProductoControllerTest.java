@@ -1,8 +1,19 @@
 package com.urbancollection.ecommerce.api.web;
 
-import com.urbancollection.ecommerce.application.service.ProductoService;
-import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,17 +24,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.urbancollection.ecommerce.application.dto.ProductoDTO;
+import com.urbancollection.ecommerce.application.service.IProductoService;
+import com.urbancollection.ecommerce.domain.base.OperationResult;
+import com.urbancollection.ecommerce.domain.entity.catalogo.Producto;
 
 @ExtendWith(MockitoExtension.class)
 class ProductoControllerTest {
@@ -31,193 +36,190 @@ class ProductoControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private ProductoService productoService;
+    private IProductoService productoService;
 
     @InjectMocks
     private ProductoController productoController;
 
-    private ObjectMapper objectMapper;
-
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(productoController).build();
-        objectMapper = new ObjectMapper();
+        new ObjectMapper();
     }
-
-    // ================== GET /api/productos ==================
 
     @Test
     void listar_deberiaRetornarListaDeProductosYStatus200() throws Exception {
-        Producto p1 = new Producto();
-        Producto p2 = new Producto();
-        when(productoService.listarProductos()).thenReturn(List.of(p1, p2));
+        ProductoDTO dto1 = new ProductoDTO();
+        dto1.setId(1L);
+        dto1.setNombre("Producto 1");
+        dto1.setPrecio(new BigDecimal("100.00"));
+        dto1.setStock(10);
+
+        ProductoDTO dto2 = new ProductoDTO();
+        dto2.setId(2L);
+        dto2.setNombre("Producto 2");
+        dto2.setPrecio(new BigDecimal("200.00"));
+        dto2.setStock(20);
+
+        when(productoService.listar()).thenReturn(List.of(dto1, dto2));
 
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$[0].nombre").value("Producto 1"))
+                .andExpect(jsonPath("$[1].nombre").value("Producto 2"));
     }
-
-    // ================== GET /api/productos/{id} ==================
 
     @Test
     void getById_cuandoExiste_deberiaRetornarProductoYStatus200() throws Exception {
-        Producto p = new Producto();
+        ProductoDTO dto = new ProductoDTO();
+        dto.setId(1L);
+        dto.setNombre("Producto Test");
+        dto.setPrecio(new BigDecimal("100.00"));
+        dto.setStock(10);
 
-        // Si la entidad tiene setNombre no rompe, si no lo tiene, se ignora
-        try {
-            p.getClass().getMethod("setNombre", String.class).invoke(p, "Gorra negra");
-        } catch (Exception ignored) {
-        }
-
-        when(productoService.obtenerProductoPorId(1L)).thenReturn(p);
+        when(productoService.buscarPorId(1L)).thenReturn(Optional.of(dto));
 
         mockMvc.perform(get("/api/productos/1"))
-                .andExpect(status().isOk());
-        // No afirmo sobre campos JSON específicos para no acoplar al modelo.
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Producto Test"));
     }
 
     @Test
     void getById_cuandoNoExiste_deberiaRetornar404ConMensajeError() throws Exception {
-        when(productoService.obtenerProductoPorId(99L)).thenReturn(null);
+        when(productoService.buscarPorId(999L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/productos/99"))
+        mockMvc.perform(get("/api/productos/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Producto no encontrado"));
     }
 
-    // ================== POST /api/productos ==================
-
     @Test
     void crear_cuandoTodoOk_deberiaRetornar201ConProductoCreado() throws Exception {
-        Producto creado = new Producto();
-        when(productoService.crearProducto(
-                any(String.class),
-                any(String.class),
-                any(BigDecimal.class),
-                any(Integer.class)
-        )).thenReturn(creado);
+        String requestBody = """
+                {
+                    "nombre": "Nuevo Producto",
+                    "descripcion": "Descripción",
+                    "precio": 150.00,
+                    "stock": 25
+                }
+                """;
 
-        ProductoController.CrearProductoRequest request = new ProductoController.CrearProductoRequest();
-        request.setNombre("Gorra negra");
-        request.setDescripcion("Algodón, talla ajustable");
-        request.setPrecio(new BigDecimal("1299.99"));
-        request.setStock(20);
+        when(productoService.crear(any(Producto.class)))
+                .thenReturn(OperationResult.success("Producto creado"));
 
         mockMvc.perform(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("Nuevo Producto"));
     }
 
     @Test
-    void crear_cuandoServiceLanzaIllegalArgument_deberiaRetornar400ConMensajeError() throws Exception {
-        when(productoService.crearProducto(
-                any(String.class),
-                any(String.class),
-                any(BigDecimal.class),
-                any(Integer.class)
-        )).thenThrow(new IllegalArgumentException("stock no puede ser negativo"));
-
-        ProductoController.CrearProductoRequest request = new ProductoController.CrearProductoRequest();
-        request.setNombre("Gorra negra");
-        request.setDescripcion("Algodón, talla ajustable");
-        request.setPrecio(new BigDecimal("1299.99"));
-        request.setStock(-5);
+    void crear_cuandoNombreVacio_deberiaRetornar400() throws Exception {
+        String requestBody = """
+                {
+                    "nombre": "",
+                    "precio": 150.00,
+                    "stock": 25
+                }
+                """;
 
         mockMvc.perform(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("stock no puede ser negativo"));
+                .andExpect(jsonPath("$.error").value("El nombre es obligatorio"));
     }
 
     @Test
-    void crear_cuandoServiceLanzaException_deberiaRetornar500ConMensajeGenerico() throws Exception {
-        when(productoService.crearProducto(
-                any(String.class),
-                any(String.class),
-                any(BigDecimal.class),
-                any(Integer.class)
-        )).thenThrow(new RuntimeException("Fallo inesperado"));
-
-        ProductoController.CrearProductoRequest request = new ProductoController.CrearProductoRequest();
-        request.setNombre("Gorra negra");
-        request.setDescripcion("Algodón, talla ajustable");
-        request.setPrecio(new BigDecimal("1299.99"));
-        request.setStock(20);
+    void crear_cuandoPrecioInvalido_deberiaRetornar400() throws Exception {
+        String requestBody = """
+                {
+                    "nombre": "Producto",
+                    "precio": -10,
+                    "stock": 25
+                }
+                """;
 
         mockMvc.perform(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("No se pudo crear el producto"));
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("El precio debe ser mayor a 0"));
     }
-
-    // ================== PATCH /api/productos/{id}/stock ==================
 
     @Test
     void actualizarStock_cuandoTodoOk_deberiaRetornar200ConProductoActualizado() throws Exception {
-        Producto actualizado = new Producto();
-        when(productoService.actualizarStock(eq(1L), eq(50))).thenReturn(actualizado);
+        ProductoDTO dto = new ProductoDTO();
+        dto.setId(1L);
+        dto.setNombre("Producto");
+        dto.setPrecio(new BigDecimal("100.00"));
+        dto.setStock(50);
 
-        ProductoController.ActualizarStockRequest request = new ProductoController.ActualizarStockRequest();
-        request.setNuevoStock(50);
+        when(productoService.buscarPorId(1L)).thenReturn(Optional.of(dto));
+        when(productoService.actualizar(eq(1L), any(Producto.class)))
+                .thenReturn(OperationResult.success("Stock actualizado"));
+
+        String requestBody = """
+                {
+                    "nuevoStock": 100
+                }
+                """;
 
         mockMvc.perform(patch("/api/productos/1/stock")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(100));
     }
 
     @Test
     void actualizarStock_cuandoProductoNoExiste_deberiaRetornar404() throws Exception {
-        when(productoService.actualizarStock(eq(1L), eq(50))).thenReturn(null);
+        when(productoService.buscarPorId(999L)).thenReturn(Optional.empty());
 
-        ProductoController.ActualizarStockRequest request = new ProductoController.ActualizarStockRequest();
-        request.setNuevoStock(50);
+        String requestBody = """
+                {
+                    "nuevoStock": 100
+                }
+                """;
 
-        mockMvc.perform(patch("/api/productos/1/stock")
+        mockMvc.perform(patch("/api/productos/999/stock")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(requestBody))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Producto no encontrado"));
     }
 
     @Test
-    void actualizarStock_cuandoServiceLanzaIllegalArgument_deberiaRetornar400ConMensajeError() throws Exception {
-        when(productoService.actualizarStock(eq(1L), eq(-10)))
-                .thenThrow(new IllegalArgumentException("stock no puede ser negativo"));
+    void actualizarStock_cuandoStockNegativo_deberiaRetornar400() throws Exception {
+        ProductoDTO dto = new ProductoDTO();
+        dto.setId(1L);
+        dto.setNombre("Producto");
+        dto.setPrecio(new BigDecimal("100.00"));
+        dto.setStock(50);
 
-        ProductoController.ActualizarStockRequest request = new ProductoController.ActualizarStockRequest();
-        request.setNuevoStock(-10);
+        when(productoService.buscarPorId(1L)).thenReturn(Optional.of(dto));
+
+        String requestBody = """
+                {
+                    "nuevoStock": -5
+                }
+                """;
 
         mockMvc.perform(patch("/api/productos/1/stock")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("stock no puede ser negativo"));
+                .andExpect(jsonPath("$.error").value("El stock no puede ser negativo"));
     }
-
-    @Test
-    void actualizarStock_cuandoServiceLanzaException_deberiaRetornar500ConMensajeGenerico() throws Exception {
-        when(productoService.actualizarStock(eq(1L), eq(10)))
-                .thenThrow(new RuntimeException("Fallo inesperado"));
-
-        ProductoController.ActualizarStockRequest request = new ProductoController.ActualizarStockRequest();
-        request.setNuevoStock(10);
-
-        mockMvc.perform(patch("/api/productos/1/stock")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("No se pudo actualizar el stock"));
-    }
-
-    // ================== DELETE /api/productos/{id} ==================
 
     @Test
     void eliminar_cuandoProductoExiste_deberiaRetornar204() throws Exception {
-        when(productoService.eliminarProducto(1L)).thenReturn(true);
+        ProductoDTO dto = new ProductoDTO();
+        dto.setId(1L);
+
+        when(productoService.buscarPorId(1L)).thenReturn(Optional.of(dto));
+        when(productoService.eliminar(1L)).thenReturn(OperationResult.success("Eliminado"));
 
         mockMvc.perform(delete("/api/productos/1"))
                 .andExpect(status().isNoContent());
@@ -225,11 +227,10 @@ class ProductoControllerTest {
 
     @Test
     void eliminar_cuandoProductoNoExiste_deberiaRetornar404ConMensajeError() throws Exception {
-        when(productoService.eliminarProducto(1L)).thenReturn(false);
+        when(productoService.buscarPorId(999L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(delete("/api/productos/1"))
+        mockMvc.perform(delete("/api/productos/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Producto no encontrado"));
     }
 }
-

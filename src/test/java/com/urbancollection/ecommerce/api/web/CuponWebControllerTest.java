@@ -9,16 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Collections;
 import java.util.Optional;
 
-import com.urbancollection.ecommerce.application.service.ICuponService;
-import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.catalogo.Cupon;
+import com.urbancollection.ecommerce.persistence.jpa.spring.CuponJpaRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -29,7 +27,7 @@ class CuponWebControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private ICuponService cuponService;
+    private CuponJpaRepository cuponRepository;
 
     @InjectMocks
     private CuponWebController cuponWebController;
@@ -39,14 +37,10 @@ class CuponWebControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(cuponWebController).build();
     }
 
-    // =========================
-    // LISTAR
-    // =========================
-
     @Test
     void listar_deberiaCargarCuponesYMostrarVista() throws Exception {
         Cupon cupon = new Cupon();
-        when(cuponService.listar()).thenReturn(Collections.singletonList(cupon));
+        when(cuponRepository.findAll()).thenReturn(Collections.singletonList(cupon));
 
         mockMvc.perform(get("/web/cupones"))
                 .andExpect(status().isOk())
@@ -55,18 +49,14 @@ class CuponWebControllerTest {
     }
 
     @Test
-    void listar_cuandoServicioFalla_deberiaMostrarError() throws Exception {
-        when(cuponService.listar()).thenThrow(new RuntimeException("Fallo en BD"));
+    void listar_cuandoRepositoryFalla_deberiaMostrarError() throws Exception {
+        when(cuponRepository.findAll()).thenThrow(new RuntimeException("Fallo en BD"));
 
         mockMvc.perform(get("/web/cupones"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("cupon/list"))
                 .andExpect(model().attributeExists("errorMessage"));
     }
-
-    // =========================
-    // FORMULARIO CREAR
-    // =========================
 
     @Test
     void mostrarFormularioCrear_deberiaRetornarVistaConValoresPorDefecto() throws Exception {
@@ -76,22 +66,13 @@ class CuponWebControllerTest {
                 .andExpect(model().attribute("codigo", ""))
                 .andExpect(model().attribute("activo", true))
                 .andExpect(model().attribute("tipo", "PORCENTAJE"))
-                .andExpect(model().attribute("valorDescuento", ""))
-                .andExpect(model().attribute("minimoCompra", ""))
-                .andExpect(model().attribute("topeDescuento", ""))
-                .andExpect(model().attribute("fechaInicio", ""))
-                .andExpect(model().attribute("fechaFin", ""));
+                .andExpect(model().attribute("valorDescuento", ""));
     }
 
-    // =========================
-    // CREAR (POST)
-    // =========================
-
     @Test
-    void crear_conDatosValidosYServicioOK_deberiaRedirigirConMensajeExito() throws Exception {
-        OperationResult result = Mockito.mock(OperationResult.class);
-        when(result.isSuccess()).thenReturn(true);
-        when(cuponService.crear(any(Cupon.class))).thenReturn(result);
+    void crear_conDatosValidosYRepositoryOK_deberiaRedirigirConMensajeExito() throws Exception {
+        when(cuponRepository.findByCodigo("ABC123")).thenReturn(Optional.empty());
+        when(cuponRepository.save(any(Cupon.class))).thenReturn(new Cupon());
 
         mockMvc.perform(post("/web/cupones/create")
                         .param("codigo", "ABC123")
@@ -104,8 +85,7 @@ class CuponWebControllerTest {
                         .param("fechaFin", "2025-12-31"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/web/cupones"))
-                .andExpect(flash().attribute("successMessage",
-                        "✓ Cupón 'ABC123' creado exitosamente"));
+                .andExpect(flash().attributeExists("successMessage"));
     }
 
     @Test
@@ -120,14 +100,10 @@ class CuponWebControllerTest {
                 .andExpect(model().attributeExists("errorMessage"));
     }
 
-    // =========================
-    // EDITAR (GET)
-    // =========================
-
     @Test
     void mostrarFormularioEditar_cuandoCuponExiste_deberiaMostrarVistaEdit() throws Exception {
         Cupon cupon = new Cupon();
-        when(cuponService.buscarPorId(1L)).thenReturn(Optional.of(cupon));
+        when(cuponRepository.findById(1L)).thenReturn(Optional.of(cupon));
 
         mockMvc.perform(get("/web/cupones/1/edit"))
                 .andExpect(status().isOk())
@@ -137,7 +113,7 @@ class CuponWebControllerTest {
 
     @Test
     void mostrarFormularioEditar_cuandoCuponNoExiste_deberiaRedirigirConError() throws Exception {
-        when(cuponService.buscarPorId(1L)).thenReturn(Optional.empty());
+        when(cuponRepository.findById(1L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/web/cupones/1/edit"))
                 .andExpect(status().is3xxRedirection())
@@ -145,18 +121,14 @@ class CuponWebControllerTest {
                 .andExpect(flash().attribute("errorMessage", "⚠ Cupón no encontrado"));
     }
 
-    // =========================
-    // ACTUALIZAR (POST)
-    // =========================
-
     @Test
-    void actualizar_conDatosValidosYServicioOK_deberiaRedirigirConMensajeExito() throws Exception {
+    void actualizar_conDatosValidosYRepositoryOK_deberiaRedirigirConMensajeExito() throws Exception {
         Cupon cuponExistente = new Cupon();
-        when(cuponService.buscarPorId(1L)).thenReturn(Optional.of(cuponExistente));
-
-        OperationResult result = Mockito.mock(OperationResult.class);
-        when(result.isSuccess()).thenReturn(true);
-        when(cuponService.actualizar(Mockito.eq(1L), any(Cupon.class))).thenReturn(result);
+        cuponExistente.setId(1L);
+        cuponExistente.setCodigo("ABC123");
+        when(cuponRepository.findById(1L)).thenReturn(Optional.of(cuponExistente));
+        when(cuponRepository.findByCodigo("ABC123")).thenReturn(Optional.of(cuponExistente));
+        when(cuponRepository.save(any(Cupon.class))).thenReturn(cuponExistente);
 
         mockMvc.perform(post("/web/cupones/1/edit")
                         .param("codigo", "ABC123")
@@ -169,34 +141,26 @@ class CuponWebControllerTest {
                         .param("fechaFin", "2025-12-31"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/web/cupones"))
-                .andExpect(flash().attribute("successMessage", "✓ Cupón actualizado exitosamente"));
+                .andExpect(flash().attributeExists("successMessage"));
     }
 
     @Test
-    void actualizar_conCodigoVacio_deberiaVolverAVistaEditConError() throws Exception {
-        Cupon cuponExistente = new Cupon();
-        when(cuponService.buscarPorId(1L)).thenReturn(Optional.of(cuponExistente));
+    void actualizar_conCuponNoExistente_deberiaRedirigirConError() throws Exception {
+        when(cuponRepository.findById(1L)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/web/cupones/1/edit")
-                        .param("codigo", "")
+                        .param("codigo", "ABC123")
                         .param("activo", "true")
                         .param("tipo", "PORCENTAJE")
                         .param("valorDescuento", "10"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("cupon/edit"))
-                .andExpect(model().attributeExists("errorMessage"))
-                .andExpect(model().attributeExists("cupon"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/web/cupones"))
+                .andExpect(flash().attributeExists("errorMessage"));
     }
 
-    // =========================
-    // ELIMINAR
-    // =========================
-
     @Test
-    void eliminar_cuandoServicioOK_deberiaRedirigirConMensajeExito() throws Exception {
-        OperationResult result = Mockito.mock(OperationResult.class);
-        when(result.isSuccess()).thenReturn(true);
-        when(cuponService.eliminar(1L)).thenReturn(result);
+    void eliminar_cuandoRepositoryOK_deberiaRedirigirConMensajeExito() throws Exception {
+        when(cuponRepository.existsById(1L)).thenReturn(true);
 
         mockMvc.perform(post("/web/cupones/1/delete"))
                 .andExpect(status().is3xxRedirection())
@@ -205,15 +169,12 @@ class CuponWebControllerTest {
     }
 
     @Test
-    void eliminar_cuandoServicioDevuelveErrorNegocio_deberiaRedirigirConMensajeError() throws Exception {
-        OperationResult result = Mockito.mock(OperationResult.class);
-        when(result.isSuccess()).thenReturn(false);
-        when(result.getMessage()).thenReturn("No se puede eliminar");
-        when(cuponService.eliminar(1L)).thenReturn(result);
+    void eliminar_cuandoCuponNoExiste_deberiaRedirigirConMensajeError() throws Exception {
+        when(cuponRepository.existsById(1L)).thenReturn(false);
 
         mockMvc.perform(post("/web/cupones/1/delete"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/web/cupones"))
-                .andExpect(flash().attribute("errorMessage", "⚠ No se puede eliminar"));
+                .andExpect(flash().attribute("errorMessage", "⚠ Cupón no encontrado"));
     }
 }

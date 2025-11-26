@@ -23,85 +23,102 @@
 
         <h3 class="card-title">Crear Nuevo Pedido</h3>
 
-        <!-- Formulario con validaciones -->
-        <form th:action="@{/web/pedidos/create}" method="post" id="formCrearPedido" onsubmit="return validarFormulario()">
+        <!-- Formulario -->
+        <form th:action="@{/web/pedidos/create}" method="post" id="formCrearPedido">
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <!-- Usuario ID -->
+                <!-- Usuario -->
                 <div class="form-group">
                     <label for="usuarioId">
-                        Usuario ID <span style="color: #ef4444;">*</span>
+                        Usuario <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" 
-                           id="usuarioId"
-                           name="usuarioId" 
-                           th:value="${usuarioId}" 
-                           required
-                           min="1"
-                           class="form-control">
-                    <small style="color: #6b7280; font-size: 12px;">Ingrese el ID del usuario que realiza el pedido</small>
+                    <select id="usuarioId" name="usuarioId" required class="form-control">
+                        <option value="">-- Seleccione usuario --</option>
+                        <option th:each="usuario : ${usuarios}" 
+                                th:value="${usuario.id}" 
+                                th:text="${usuario.nombre}">
+                            Usuario
+                        </option>
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px;">Seleccione el usuario que realiza el pedido</small>
                 </div>
 
-                <!-- Dirección ID -->
+                <!-- Método de Pago -->
                 <div class="form-group">
-                    <label for="direccionId">
-                        Dirección ID <span style="color: #ef4444;">*</span>
+                    <label for="metodoPago">
+                        Método de Pago <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" 
-                           id="direccionId"
-                           name="direccionId" 
-                           th:value="${direccionId}" 
-                           required
-                           min="1"
-                           class="form-control">
-                    <small style="color: #6b7280; font-size: 12px;">ID de la dirección de entrega</small>
+                    <select id="metodoPago" name="metodoPago" required class="form-control">
+                        <option value="">-- Seleccione método de pago --</option>
+                        <option value="PAYPAL">PayPal</option>
+                        <option value="TARJETA">Tarjeta de Crédito/Débito</option>
+                        <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px;">Seleccione cómo pagará el cliente</small>
                 </div>
 
-                <!-- Producto ID -->
-                <div class="form-group">
-                    <label for="productoId">
-                        Producto ID <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="number" 
-                           id="productoId"
-                           name="productoId" 
-                           th:value="${productoId}" 
-                           required
-                           min="1"
-                           class="form-control">
-                    <small style="color: #6b7280; font-size: 12px;">ID del producto a agregar al pedido</small>
-                </div>
-
-                <!-- Cantidad -->
-                <div class="form-group">
-                    <label for="cantidad">
-                        Cantidad <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="number" 
-                           id="cantidad"
-                           name="cantidad" 
-                           th:value="${cantidad}" 
-                           required
-                           min="1"
-                           max="999"
-                           class="form-control">
-                    <small style="color: #6b7280; font-size: 12px;">Cantidad del producto (mínimo 1)</small>
-                </div>
-
-                <!-- Cupón ID (opcional) -->
-                <div class="form-group">
+                <!-- Cupón (opcional) -->
+                <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="cuponId">
-                        Cupón ID <span style="color: #6b7280;">(opcional)</span>
+                        Cupón <span style="color: #6b7280;">(opcional)</span>
                     </label>
-                    <input type="number" 
-                           id="cuponId"
-                           name="cuponId" 
-                           th:value="${cuponId}"
-                           min="1"
-                           class="form-control">
-                    <small style="color: #6b7280; font-size: 12px;">ID del cupón de descuento (si aplica)</small>
+                    <select id="cuponId" name="cuponId" class="form-control">
+                        <option value="">-- Sin cupón --</option>
+                        <option th:each="cupon : ${cupones}" 
+                                th:value="${cupon.id}" 
+                                th:text="${cupon.codigo + ' - ' + cupon.valorDescuento + (cupon.tipo.name() == 'PORCENTAJE' ? '%' : ' USD')}">
+                            Cupón
+                        </option>
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px;">Opcional: seleccione un cupón de descuento</small>
                 </div>
             </div>
+
+            <!-- Sección de Productos -->
+            <h4 style="margin: 30px 0 20px 0; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                📦 Productos
+            </h4>
+
+            <div id="productosContainer">
+                <!-- Producto 1 (inicial) -->
+                <div class="producto-item" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 20px; margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>
+                            Producto <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="productosIds" required class="form-control">
+                            <option value="">-- Seleccione producto --</option>
+                            <option th:each="producto : ${productos}" 
+                                    th:value="${producto.id}" 
+                                    th:text="${producto.nombre + ' - $' + #numbers.formatDecimal(producto.precio, 1, 2) + ' (Stock: ' + producto.stock + ')'}">
+                                Producto
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin: 0;">
+                        <label>
+                            Cantidad <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="number" name="cantidades" required min="1" max="999" value="1" class="form-control">
+                    </div>
+
+                    <div style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProducto(this)" style="padding: 8px 12px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary" onclick="agregarProducto()" style="margin-top: 10px;">
+                <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Agregar otro producto
+            </button>
 
             <!-- Botones de acción -->
             <div style="margin-top: 30px; display: flex; gap: 10px;">
@@ -116,90 +133,27 @@
         </form>
     </div>
 
-    <!-- Script de validación frontend -->
+    <!-- Script para manejo dinámico de productos -->
     <script>
-        function validarFormulario() {
-            // Limpiar mensajes de error previos
-            const errorMessages = document.querySelectorAll('.error-message');
-            errorMessages.forEach(msg => msg.remove());
-
-            let esValido = true;
-
-            // Validar Usuario ID
-            const usuarioId = document.getElementById('usuarioId');
-            if (!usuarioId.value || parseInt(usuarioId.value) < 1) {
-                mostrarError(usuarioId, 'El ID de usuario debe ser mayor a 0');
-                esValido = false;
-            }
-
-            // Validar Dirección ID
-            const direccionId = document.getElementById('direccionId');
-            if (!direccionId.value || parseInt(direccionId.value) < 1) {
-                mostrarError(direccionId, 'El ID de dirección debe ser mayor a 0');
-                esValido = false;
-            }
-
-            // Validar Producto ID
-            const productoId = document.getElementById('productoId');
-            if (!productoId.value || parseInt(productoId.value) < 1) {
-                mostrarError(productoId, 'El ID de producto debe ser mayor a 0');
-                esValido = false;
-            }
-
-            // Validar Cantidad
-            const cantidad = document.getElementById('cantidad');
-            if (!cantidad.value || parseInt(cantidad.value) < 1) {
-                mostrarError(cantidad, 'La cantidad debe ser mayor a 0');
-                esValido = false;
-            } else if (parseInt(cantidad.value) > 999) {
-                mostrarError(cantidad, 'La cantidad no puede exceder 999 unidades');
-                esValido = false;
-            }
-
-            // Validar Cupón ID (opcional, pero si se ingresa debe ser válido)
-            const cuponId = document.getElementById('cuponId');
-            if (cuponId.value && parseInt(cuponId.value) < 1) {
-                mostrarError(cuponId, 'El ID de cupón debe ser mayor a 0 o dejarlo vacío');
-                esValido = false;
-            }
-
-            if (!esValido) {
-                // Scroll al primer error
-                const primerError = document.querySelector('.error-message');
-                if (primerError) {
-                    primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-
-            return esValido;
-        }
-
-        function mostrarError(input, mensaje) {
-            // Agregar clase de error al input
-            input.style.borderColor = '#ef4444';
+        function agregarProducto() {
+            const container = document.getElementById('productosContainer');
+            const nuevoProducto = document.querySelector('.producto-item').cloneNode(true);
             
-            // Crear mensaje de error
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.style.color = '#ef4444';
-            errorDiv.style.fontSize = '12px';
-            errorDiv.style.marginTop = '5px';
-            errorDiv.textContent = mensaje;
+            // Limpiar valores
+            nuevoProducto.querySelector('select[name="productosIds"]').value = '';
+            nuevoProducto.querySelector('input[name="cantidades"]').value = '1';
             
-            // Insertar después del input
-            input.parentNode.appendChild(errorDiv);
+            container.appendChild(nuevoProducto);
         }
-
-        // Limpiar error cuando el usuario empieza a escribir
-        document.querySelectorAll('input[type="number"]').forEach(input => {
-            input.addEventListener('input', function() {
-                this.style.borderColor = '';
-                const errorMsg = this.parentNode.querySelector('.error-message');
-                if (errorMsg) {
-                    errorMsg.remove();
-                }
-            });
-        });
+        
+        function eliminarProducto(btn) {
+            const items = document.querySelectorAll('.producto-item');
+            if (items.length > 1) {
+                btn.closest('.producto-item').remove();
+            } else {
+                alert('Debe tener al menos un producto en el pedido');
+            }
+        }
     </script>
 
     <!-- Script para auto-ocultar mensajes -->

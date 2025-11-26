@@ -1,7 +1,8 @@
 package com.urbancollection.ecommerce.api.web;
 
+import com.urbancollection.ecommerce.application.service.IUsuarioService;
+import com.urbancollection.ecommerce.domain.base.OperationResult;
 import com.urbancollection.ecommerce.domain.entity.usuarios.Usuario;
-import com.urbancollection.ecommerce.domain.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,66 +18,65 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 
 @ExtendWith(MockitoExtension.class)
 class UsuarioControllerTest {
 
-    private static final String BASE_URL = "/api/usuarios"; // cambia esto si tu controller usa otra ruta
-
     private MockMvc mockMvc;
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private IUsuarioService usuarioService;
 
     @InjectMocks
     private UsuarioController usuarioController;
 
-    private ObjectMapper objectMapper;
-
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(usuarioController).build();
-        objectMapper = new ObjectMapper();
+        new ObjectMapper();
     }
-
-    // =========================
-    // GET /api/usuarios
-    // =========================
 
     @Test
     void listar_deberiaResponderExitosamente() throws Exception {
         Usuario u1 = new Usuario();
+        u1.setId(1L);
+        u1.setNombre("Juan");
+        u1.setCorreo("juan@test.com");
+
         Usuario u2 = new Usuario();
-        when(usuarioRepository.findAll()).thenReturn(List.of(u1, u2));
+        u2.setId(2L);
+        u2.setNombre("Maria");
+        u2.setCorreo("maria@test.com");
 
-        mockMvc.perform(get(BASE_URL))
-                .andExpect(status().is2xxSuccessful());
+        when(usuarioService.listar()).thenReturn(List.of(u1, u2));
+
+        mockMvc.perform(get("/api/usuarios"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Juan"))
+                .andExpect(jsonPath("$[1].nombre").value("Maria"));
     }
-
-    // =========================
-    // POST /api/usuarios
-    // =========================
 
     @Test
     void crear_deberiaResponderExitosamente() throws Exception {
-        // request JSON
-        UsuarioController.CrearUsuarioRequest request =
-                new UsuarioController.CrearUsuarioRequest();
-        request.setNombre("Juan Pérez");
-        request.setCorreo("juan@example.com");
-        request.setContrasena("secreta");
-        request.setRol("CLIENTE");
+        String requestBody = """
+                {
+                    "nombre": "Carlos",
+                    "correo": "carlos@test.com",
+                    "contrasena": "password123",
+                    "rol": "CLIENTE"
+                }
+                """;
 
-        // lo que devuelve el repo
-        Usuario guardado = new Usuario();
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(guardado);
+        when(usuarioService.crear(any(Usuario.class)))
+                .thenReturn(OperationResult.success("Usuario creado"));
 
-        mockMvc.perform(post(BASE_URL)
+        mockMvc.perform(post("/api/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().is2xxSuccessful());
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("Carlos"));
     }
 }
